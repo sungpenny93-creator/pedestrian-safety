@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>先行一步 - AI 交通監控中心</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0e14;
+            --glass: rgba(255, 255, 255, 0.05);
+            --accent: #ffb300;
+            /* Hazard Amber */
+            --danger: #ff4b5c;
+            --success: #00e676;
+            --text: #e0e0e0;
+            --info: #00f2ff;
+            --card-width: 400px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 2rem;
+            background: radial-gradient(circle at top right, #1a2a3a, var(--bg));
+        }
+
+        header {
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            color: var(--accent);
+            text-shadow: 0 0 15px rgba(255, 179, 0, 0.3);
+        }
+
+        .settings-btn {
+            background: var(--glass);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .settings-btn:hover {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(var(--card-width), 1fr));
+            gap: 1.5rem;
+            justify-content: center;
+        }
+
+        .camera-card {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: 0.3s;
+            position: relative;
+            width: 100%;
+            max-width: var(--card-width);
+            margin: 0 auto;
+        }
+
+        .camera-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent);
+        }
+
+        .video-container {
+            aspect-ratio: 4/3;
+            background: #000;
+            position: relative;
+        }
+
+        .video-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .card-info {
+            padding: 1.2rem;
+        }
+
+        .info-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .cam-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.8rem;
+            font-size: 0.85rem;
+        }
+
+        .data-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0.8;
+        }
+
+        .data-label {
+            color: var(--info);
+            font-weight: 600;
+            min-width: 45px;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .online {
+            background: rgba(0, 230, 118, 0.1);
+            color: var(--success);
+        }
+
+        .offline {
+            background: rgba(255, 75, 92, 0.1);
+            color: var(--danger);
+        }
+
+        /* Hazard Style Toggle */
+        .hazard-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.3s;
+            color: #666;
+        }
+
+        .hazard-on {
+            background: rgba(255, 179, 0, 0.2);
+            color: var(--accent);
+            box-shadow: 0 0 20px rgba(255, 179, 0, 0.4);
+            border-color: var(--accent);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .rssi-bar {
+            width: 40px;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .rssi-fill {
+            height: 100%;
+            background: var(--success);
+            transition: 1s;
+        }
+
+        /* Debug Console Styles */
+        .debug-console {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            border-top: 1px solid var(--accent);
+            padding: 10px 20px;
+            z-index: 1000;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .console-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .log-list {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.8rem;
+            color: #aaa;
+            list-style: none;
+        }
+
+        .log-item {
+            margin-bottom: 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 2px;
+        }
+
+        .log-info {
+            color: var(--success);
+            opacity: 0.8;
+        }
+
+        .log-warn {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .log-error {
+            color: var(--danger);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .log-toggle {
+            border: none;
+            background: none;
+            color: var(--accent);
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .btn-restart {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+
+        .log-info {
+            color: var(--success);
+            opacity: 0.8;
+        }
+
+        .log-warn {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .log-error {
+            color: var(--danger);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .direct-link {
+            font-size: 0.75rem;
+            color: var(--info);
+            text-decoration: none;
+            border-bottom: 1px dashed var(--info);
+            cursor: pointer;
+            opacity: 0.7;
+        }
+
+        .direct-link:hover {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div>
+            <h1>先行一步：斑馬線智慧預警看板</h1>
+        </div>
+        <div style="display: flex; gap: 20px; align-items: center;">
+            <div
+                style="display: flex; align-items: center; gap: 10px; background: var(--glass); padding: 5px 15px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05);">
+                <span style="font-size: 0.8rem; opacity: 0.7;">縮放</span>
+                <input type="range" min="180" max="800" value="400" id="scaleSlider" oninput="updateScale(this.value)"
+                    style="cursor: pointer; accent-color: var(--accent);">
+            </div>
+            <a href="/settings" class="settings-btn">系統配置 (Settings)</a>
+        </div>
+    </header>
+
+    <main class="dashboard-grid">
+        <!-- 新增：系統狀態卡 (基地台資訊) -->
+        <div class="camera-card" style="background: rgba(0, 242, 255, 0.03); border-color: rgba(0, 242, 255, 0.2);">
+            <div
+                style="padding: 1.5rem; height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <h3
+                        style="color: var(--info); font-size: 1.1rem; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 10px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path
+                                d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.59 16.11a6 6 0 0 1 6.82 0M12 20h.01" />
+                        </svg>
+                        Pi 基地台狀態
+                    </h3>
+                    <div style="font-size: 0.9rem; line-height: 2;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="opacity: 0.6;">名稱 (SSID):</span>
+                            <span id="ap-ssid" style="font-weight: 600;">--</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="opacity: 0.6;">無線模式:</span>
+                            <span id="ap-mode" style="color: var(--success); font-weight: 600;">--</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="opacity: 0.6;">已連線設備:</span>
+                            <span id="ap-clients">--</span>
+                        </div>
+                    </div>
+                </div>
+                <div
+                    style="margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem; opacity: 0.5;">
+                    系統 IP: <span id="pi-ip-display">--</span>
+                </div>
+            </div>
+        </div>
+
+        {% for cam in cameras %}
+        <div class="camera-card" id="cam-{{ cam.id }}">
+            <div class="video-container">
+                <img src="/video_feed/{{ cam.id }}" id="img-{{ cam.id }}" onerror="this.style.opacity='0'"
+                    onload="this.style.opacity='1'">
+            </div>
+            <div class="card-info">
+                <div class="info-top">
+                    <span class="cam-name">{{ cam.name }}</span>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <button class="hazard-btn" id="hazard-{{ cam.id }}" onclick="toggleAlarm({{ cam.id }})"
+                            title="手動觸發斑馬線警示燈">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path
+                                    d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4m0 4h.01" />
+                            </svg>
+                        </button>
+                        <span class="status-badge offline" id="badge-{{ cam.id }}">OFFLINE</span>
+                    </div>
+                </div>
+                <div class="data-grid">
+                    <div class="data-item">
+                        <span class="data-label">訊號</span>
+                        <div class="rssi-bar">
+                            <div id="rssi-{{ cam.id }}" class="rssi-fill" style="width: 0%"></div>
+                        </div>
+                        <span id="rssi-val-{{ cam.id }}">-- dBm</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">延遲</span>
+                        <span id="latency-{{ cam.id }}" style="color: var(--success)">-- ms</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">TCP 80</span>
+                        <span id="tcp-{{ cam.id }}">掃描中...</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">警示</span>
+                        <span id="alarm-state-{{ cam.id }}">靜止</span>
+                    </div>
+                    <div style="grid-column: span 2; margin-top: 5px; text-align: center;">
+                        <span class="direct-link" onclick="openDirect('{{ cam.ip }}')">🔗 直連測試 (繞過 Pi 代理)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </main>
+
+    <div class="debug-console" id="debugConsole">
+        <div class="console-header">
+            <span>💻 系統診斷控制台 (Live Logs)</span>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <button class="btn-restart" onclick="restartFetchers()">一鍵重連所有攝影機</button>
+                <button class="log-toggle" onclick="toggleConsole()">[收合]</button>
+            </div>
+        </div>
+        <ul class="log-list" id="logList">
+            <li class="log-item">正在初始化除錯日誌...</li>
+        </ul>
+    </div>
+
+    <div style="position: fixed; bottom: 20px; right: 20px;">
+        <button onclick="toggleConsole()"
+            style="background: var(--accent); color: #000; border: none; padding: 10px 20px; border-radius: 30px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(255,179,0,0.4);">
+            🛠️ 系統除錯
+        </button>
+    </div>
+
+    <script>
+        const alarmStates = {};
+        const API_KEY = "{{ API_KEY }}";
+
+        function openDirect(ip) {
+            if (!ip) return;
+            const url = `http://${ip}/stream?auth=${API_KEY}`;
+            window.open(url, '_blank');
+        }
+
+        async function toggleAlarm(id) {
+            const newState = alarmStates[id] === 1 ? 'off' : 'on';
+            try {
+                await fetch(`/control/${id}/${newState}`, { method: 'POST' });
+                updateStatus();
+            } catch (e) { }
+        }
+
+        async function updateStatus() {
+            try {
+                const resp = await fetch('/status');
+                const data = await resp.json();
+                data.forEach(cam => {
+                    const badge = document.getElementById('badge-' + cam.id);
+                    const rssiFill = document.getElementById('rssi-' + cam.id);
+                    const rssiVal = document.getElementById('rssi-val-' + cam.id);
+                    const tcpStatus = document.getElementById('tcp-' + cam.id);
+                    const latencyVal = document.getElementById('latency-' + cam.id);
+                    const hazardBtn = document.getElementById('hazard-' + cam.id);
+                    const stateLabel = document.getElementById('alarm-state-' + cam.id);
+                    const directLink = document.getElementById('direct-' + cam.id);
+
+                    if (!tcpStatus || !latencyVal) return;
+
+                    alarmStates[cam.id] = cam.alarm;
+
+                    if (directLink && cam.ip) {
+                        directLink.onclick = () => openDirect(cam.ip);
+                    }
+                    tcpStatus.innerText = cam.tcp === 'OPEN' ? '🟢 開放' : (cam.tcp === 'CLOSED' ? '🔴 阻斷' : '🟡 偵測中');
+                    tcpStatus.style.color = cam.tcp === 'OPEN' ? 'var(--success)' : 'var(--danger)';
+                    latencyVal.innerText = cam.latency >= 0 ? cam.latency + ' ms' : '-- ms';
+                    latencyVal.style.color = cam.latency < 100 ? 'var(--success)' : (cam.latency < 300 ? 'var(--accent)' : 'var(--danger)');
+
+                    if (cam.online) {
+                        badge.className = 'status-badge online';
+                        badge.innerText = 'CONNECTED';
+
+                        let pct = Math.max(0, Math.min(100, 2 * (cam.rssi + 100)));
+                        rssiFill.style.width = pct + '%';
+                        rssiFill.style.background = pct > 50 ? 'var(--success)' : (pct > 20 ? 'var(--accent)' : 'var(--danger)');
+                        rssiVal.innerText = cam.rssi + ' dBm';
+                        uptime.innerText = cam.uptime + 's';
+                        sensor.innerText = cam.sensor.toFixed(2) + ' V';
+
+                        if (cam.alarm === 1) {
+                            hazardBtn.classList.add('hazard-on');
+                            stateLabel.innerText = '觸發中';
+                            stateLabel.style.color = 'var(--accent)';
+                        } else {
+                            hazardBtn.classList.remove('hazard-on');
+                            stateLabel.innerText = '靜止';
+                            stateLabel.style.color = 'inherit';
+                        }
+                    } else {
+                        badge.className = 'status-badge offline';
+                        badge.innerText = 'OFFLINE';
+                        hazardBtn.classList.remove('hazard-on');
+                    }
+                });
+            } catch (e) { }
+        }
+        setInterval(updateStatus, 2000);
+        updateStatus();
+
+        // Debug Console Logic
+        let consoleVisible = false;
+        function toggleConsole() {
+            consoleVisible = !consoleVisible;
+            document.getElementById('debugConsole').style.display = consoleVisible ? 'block' : 'none';
+        }
+
+        async function updateLogs() {
+            try {
+                const resp = await fetch('/api/logs');
+                const logs = await resp.json();
+                const logList = document.getElementById('logList');
+                logList.innerHTML = logs.map(l => {
+                    const levelClass = `log-${l.level.toLowerCase()}`;
+                    return `<li class="log-item ${levelClass}">[${l.time}] ${l.msg}</li>`;
+                }).join('');
+                if (consoleVisible) logList.scrollTop = logList.scrollHeight;
+            } catch (e) { }
+        }
+
+        async function restartFetchers() {
+            if (!confirm("確定要重啟所有攝影機連線任務嗎？")) return;
+            try {
+                await fetch('/api/restart', { method: 'POST' });
+            } catch (e) { }
+        }
+
+        setInterval(updateLogs, 3000);
+        updateLogs();
+
+        // Scale Control Logic
+        function updateScale(val) {
+            document.documentElement.style.setProperty('--card-width', val + 'px');
+        }
+
+        async function updateWifiStatus() {
+            try {
+                const [wifiResp, netResp] = await Promise.all([
+                    fetch('/api/wifi_status'),
+                    fetch('/api/net_info')
+                ]);
+                const wifi = await wifiResp.json();
+                const net = await netResp.json();
+
+                document.getElementById('ap-ssid').innerText = wifi.ssid;
+                document.getElementById('ap-mode').innerText = wifi.mode;
+                document.getElementById('ap-clients').innerText = wifi.clients;
+                document.getElementById('pi-ip-display').innerText = net.local_ip;
+            } catch (e) { }
+        }
+        setInterval(updateWifiStatus, 5000);
+        updateWifiStatus();
+    </script>
+</body>
+
+</html>

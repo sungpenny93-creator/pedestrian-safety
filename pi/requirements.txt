@@ -1,0 +1,11 @@
+opencv-python
+numpy
+# ultralytics will be installed separately to force CPU version
+lgpio
+requests
+fastapi
+uvicorn
+jinja2
+python-multipart
+zeroconf
+httpx

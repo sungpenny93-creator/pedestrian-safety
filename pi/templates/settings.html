@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>先行一步 - 系統設定</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0e14;
+            --glass: rgba(255, 255, 255, 0.05);
+            --accent: #ffb300;
+            --info: #00f2ff;
+            --text: #e0e0e0;
+        }
+
+        body {
+            background-color: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif;
+            padding: 2rem; background: radial-gradient(circle at top right, #1a2a3a, var(--bg));
+            min-height: 100vh;
+        }
+
+        .container { max-width: 900px; margin: 0 auto; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem; }
+
+        .glass-card {
+            background: var(--glass); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px; padding: 2rem; margin-bottom: 2rem;
+        }
+
+        h2 { color: var(--info); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px; }
+
+        .cam-row {
+            display: grid; grid-template-columns: 1fr 1.5fr 100px; gap: 1rem;
+            margin-bottom: 1rem; align-items: center;
+        }
+
+        input {
+            background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white; padding: 10px 15px; border-radius: 10px; outline: none;
+        }
+        input:focus { border-color: var(--info); }
+
+        .btn {
+            padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer;
+            font-weight: 600; transition: 0.3s; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-primary { background: var(--info); color: #000; }
+        .btn-outline { background: transparent; border: 1px solid var(--info); color: var(--info); }
+        .btn-danger { background: rgba(255, 75, 92, 0.1); color: #ff4b5c; border: 1px solid #ff4b5c; }
+        .btn:hover { opacity: 0.8; transform: translateY(-2px); }
+
+        /* Discovery List */
+        .discovery-list { margin-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 1rem; }
+        .discovered-item {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(255, 255, 255, 0.03); padding: 12px 20px; border-radius: 12px; margin-bottom: 8px;
+        }
+        .scan-spinner { 
+            display: inline-block; width: 16px; height: 16px; border: 2px solid var(--info); 
+            border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; 
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>系統配置中心</h1>
+            <a href="/" style="color: var(--text); text-decoration: none; opacity: 0.7;">← 返回儀表板</a>
+        </header>
+
+        <!-- 新增：網路診斷小工具 -->
+        <section class="glass-card" style="border-left: 4px solid var(--info); padding: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="margin: 0; font-size: 1.1rem; color: var(--info);">📍 系統網路資訊</h3>
+                    <div id="net-info" style="font-size: 0.9rem; opacity: 0.7; margin-top: 5px;">正在取得網路狀態...</div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 0.8rem; opacity: 0.5; margin-bottom: 5px;">連線測試 (TCP)</div>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="text" id="ping-target" placeholder="192.168.x.x" style="padding: 5px 10px; width: 140px; font-size: 0.8rem;">
+                        <button class="btn btn-outline" style="padding: 5px 10px; font-size: 0.8rem;" onclick="testConnection()">測試</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="glass-card">
+            <h2>📜 已配置攝影機</h2>
+            <form id="config-form">
+                <div id="camera-list">
+                    {% for cam in cameras %}
+                    <div class="cam-row" id="row-{{ loop.index0 }}">
+                        <input type="text" name="name_{{ loop.index0 }}" value="{{ cam.name }}">
+                        <input type="text" name="ip_{{ loop.index0 }}" value="{{ cam.ip }}">
+                        <button type="button" class="btn btn-danger" onclick="removeRow({{ loop.index0 }})">移除</button>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                    <button type="button" class="btn btn-outline" onclick="addRow()">+ 手動新增</button>
+                    <button type="submit" class="btn btn-primary">💾 儲存並套用</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="glass-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="margin: 0; color: var(--accent);">🔍 發現新設備 (mDNS)</h2>
+                <button class="btn btn-outline" onclick="startScan()" id="scan-btn">
+                    <span>開始掃描</span>
+                </button>
+            </div>
+            <div id="discovery-status" style="font-size: 0.9rem; opacity: 0.6; margin-bottom: 10px;">
+                點擊上方按鈕開始搜尋區域網路中的 ESP32 設備...
+            </div>
+            <div id="discovered-list" class="discovery-list">
+                <!-- Discovered items appear here -->
+            </div>
+        </section>
+    </div>
+
+    <script>
+        let rowCount = {{ cameras|length }};
+
+        async function fetchNetInfo() {
+            try {
+                const resp = await fetch('/api/net_info');
+                const data = await resp.json();
+                document.getElementById('net-info').innerText = `主機名稱: ${data.hostname} | 區域網路 IP: ${data.local_ip}`;
+            } catch (e) {
+                document.getElementById('net-info').innerText = "無法取得網路資訊";
+            }
+        }
+        window.onload = fetchNetInfo;
+
+        async function testConnection() {
+            const target = document.getElementById('ping-target').value;
+            if(!target) return;
+            const btn = event.currentTarget;
+            const originalText = btn.innerText;
+            btn.innerText = "⏳";
+            try {
+                const resp = await fetch(`/api/ping/${target}`);
+                const data = await resp.json();
+                if(data.status === "success") {
+                    alert(`✅ 連線成功！ ${target} 可正常通訊。`);
+                } else {
+                    alert(`❌ 連線失敗！\n原因: ${data.message}\n請檢查設備是否在同一個網段，或是否有其他裝置佔用連線。`);
+                }
+            } catch(e) { alert("連線測試發生錯誤"); }
+            finally { btn.innerText = originalText; }
+        }
+
+        function addRow(name = "", ip = "") {
+            const container = document.getElementById('camera-list');
+            const div = document.createElement('div');
+            div.className = 'cam-row';
+            div.id = `row-${rowCount}`;
+            div.innerHTML = `
+                <input type="text" name="name_${rowCount}" value="${name}" placeholder="名稱">
+                <input type="text" name="ip_${rowCount}" value="${ip}" placeholder="IP">
+                <button type="button" class="btn btn-danger" onclick="removeRow(${rowCount})">移除</button>
+            `;
+            container.appendChild(div);
+            rowCount++;
+        }
+
+        function removeRow(id) { 
+            const row = document.getElementById(`row-${id}`);
+            if(row) row.remove(); 
+        }
+
+        async function startScan() {
+            const btn = document.getElementById('scan-btn');
+            const status = document.getElementById('discovery-status');
+            btn.disabled = true;
+            status.innerHTML = '<div class="scan-spinner"></div> 正在掃描區網設備...';
+            
+            try {
+                const resp = await fetch('/scan');
+                const devices = await resp.json();
+                const list = document.getElementById('discovered-list');
+                list.innerHTML = "";
+                
+                if (devices.length === 0) {
+                    status.innerText = "未在區網中發現新的安全攝影機。";
+                } else {
+                    status.innerText = `發現 ${devices.length} 個可用的設備！`;
+                    devices.forEach(dev => {
+                        const div = document.createElement('div');
+                        div.className = 'discovered-item';
+                        div.innerHTML = `
+                            <div>
+                                <div style="font-weight: 600;">${dev.name}</div>
+                                <div style="font-size: 0.8rem; opacity: 0.6;">IP: ${dev.ip}</div>
+                            </div>
+                            <button class="btn btn-primary" onclick="addRow('${dev.name}', '${dev.ip}')">加入系統</button>
+                        `;
+                        list.appendChild(div);
+                    });
+                }
+            } catch (err) {
+                status.innerText = "掃描失敗，請檢查網路連線。";
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        document.getElementById('config-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const cameras = [];
+            const rows = document.querySelectorAll('.cam-row');
+            
+            rows.forEach((row, index) => {
+                const nameInput = row.querySelector('input[type="text"]:nth-child(1)');
+                const ipInput = row.querySelector('input[type="text"]:nth-child(2)');
+                if (nameInput && ipInput && nameInput.value && ipInput.value) {
+                    cameras.push({ 
+                        id: index + 1, 
+                        name: nameInput.value, 
+                        ip: ipInput.value 
+                    });
+                }
+            });
+
+            if (cameras.length === 0) {
+                if(!confirm("目前沒有配置任何攝影機，確定要儲存嗎？")) return;
+            }
+
+            try {
+                const resp = await fetch('/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cameras })
+                });
+                if (resp.ok) {
+                    alert("設定已儲存並生效！系統正在重新啟動背景連線任務。");
+                    window.location.href = "/";
+                }
+            } catch (err) {
+                alert("儲存失敗，請檢查後端服務是否正常。");
+            }
+        };
+    </script>
+</body>
+</html>
