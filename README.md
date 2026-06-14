@@ -81,7 +81,7 @@ curl -sSL https://raw.githubusercontent.com/sungpenny93-creator/pedestrian-safet
    ```
 2. **預設熱點資訊**:
    - **SSID**: OneStepAhead_AP
-   - **Password**: NonoSafety@2026
+   - **Password**: PennySafety@2026
    - **Pi IP**: 192.168.4.1
 3. **儀表板監控**: 啟動後，首頁將出現「Pi 基地台狀態」卡片，顯示當前熱點名稱與連線狀態。
 
