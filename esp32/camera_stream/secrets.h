@@ -3,7 +3,7 @@
 
 // --- Wi-Fi Credentials ---
 #define WIFI_SSID "OneStepAhead_AP"
-#define WIFI_PASS "NonoSafety@2026"
+#define WIFI_PASS "PennySafety@2026"
 
 // --- Security API Key ---
 // 所有對 ESP32 的請求都必須包含 ?auth=YOUR_API_KEY

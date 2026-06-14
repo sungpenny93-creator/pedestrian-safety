@@ -16,7 +16,7 @@
 // WIFI CREDENTIALS
 // ===================
 const char *ssid = "OneStepAhead_AP";
-const char *password = "NonoSafety@2026";
+const char *password = "PennySafety@2026";
 
 #define ALARM_PIN 12 // Moved from 13 to avoid HS2_DATA3 (SD Card) conflict
 #define FLASH_PIN 4
@@ -101,7 +101,7 @@ esp_err_t status_handler(httpd_req_t *req) {
 }
 
 esp_err_t stream_handler(httpd_req_t *req) {
-  if (!check_auth(req)) return ESP_OK;
+  //if (!check_auth(req)) return ESP_OK;
   camera_fb_t *fb = NULL;
   esp_err_t res = ESP_OK;
   size_t _jpg_buf_len = 0;
@@ -177,7 +177,7 @@ void setup() {
   config.pixel_format = PIXFORMAT_JPEG;
   config.frame_size = FRAMESIZE_QQVGA;
   config.jpeg_quality = 40; 
-  config.fb_count = 1;
+  config.fb_count = 2;
   
   Serial.println("Initialzing ESP32-CAM Safety System (Optimized)...");
 
