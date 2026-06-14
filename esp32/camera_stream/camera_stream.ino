@@ -101,7 +101,7 @@ esp_err_t status_handler(httpd_req_t *req) {
 }
 
 esp_err_t stream_handler(httpd_req_t *req) {
-  //if (!check_auth(req)) return ESP_OK;
+  if (!check_auth(req)) return ESP_OK;
   camera_fb_t *fb = NULL;
   esp_err_t res = ESP_OK;
   size_t _jpg_buf_len = 0;
