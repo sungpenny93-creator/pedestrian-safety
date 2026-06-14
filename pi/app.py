@@ -340,7 +340,8 @@ async def fetch_camera_data(cam_id: int, ip: str, is_main_camera: bool):
                                 else:
                                     break
                                     
-                            if len(buffer) > 500000:
+                            # 把 buffer 限制改小一點，避免塞爆記憶體或讀到過舊的影像資料
+                            if len(buffer) > 200000:
                                 buffer = b""
             
             except asyncio.CancelledError:
