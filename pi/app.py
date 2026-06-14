@@ -335,8 +335,8 @@ async def fetch_camera_data(cam_id: int, ip: str, is_main_camera: bool):
                                                 frame_cache[cam_id] = buffer_jpg.tobytes()
                                         else:
                                             frame_cache[cam_id] = jpg
-                                    
-                                    await asyncio.sleep(0.001) 
+                                    # 讓 ESP32 有喘息的時間，避免因過度頻繁拉取影像導致當機斷線
+                                    await asyncio.sleep(0.1) 
                                 else:
                                     break
                                     
