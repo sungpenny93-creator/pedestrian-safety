@@ -43,7 +43,7 @@
 ### A. Raspberry Pi 端 (處理中心)
 在您的 Raspberry Pi 終端機執行以下指令進行自動化安裝：
 ```bash
-curl -sSL https://raw.githubusercontent.com/Nono0325/pedestrian-safety/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/sungpenny93-creator/pedestrian-safety/main/install.sh | bash
 ```
 安裝完成後執行：
 1. **啟動辨識主程式**: `venv/bin/python3 pi/main.py`
