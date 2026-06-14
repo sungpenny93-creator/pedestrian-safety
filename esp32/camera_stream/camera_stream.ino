@@ -148,7 +148,7 @@ esp_err_t stream_handler(httpd_req_t *req) {
 
 void setup() {
   // Power stability: Disable brownout detector
-  //WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
 
   Serial.begin(115200);
   pinMode(ALARM_PIN, OUTPUT);
@@ -176,7 +176,7 @@ void setup() {
   config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_JPEG;
   config.frame_size = FRAMESIZE_QVGA;
-  config.jpeg_quality = 40; 
+  config.jpeg_quality = 50; 
   config.fb_count = 2;
   
   Serial.println("Initialzing ESP32-CAM Safety System (Optimized)...");

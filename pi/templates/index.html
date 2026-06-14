@@ -364,8 +364,10 @@
         {% for cam in cameras %}
         <div class="camera-card" id="cam-{{ cam.id }}">
             <div class="video-container">
-                <img src="/video_feed/{{ cam.id }}" id="img-{{ cam.id }}" onerror="this.style.opacity='0'"
-                    onload="this.style.opacity='1'">
+                <img id="img-{{ cam.id }}" onerror="this.style.opacity='0'" onload="this.style.opacity='1'">
+                <script>
+                    document.getElementById('img-{{ cam.id }}').src = "/video_feed/{{ cam.id }}?t=" + new Date().getTime();
+                </script>
             </div>
             <div class="card-info">
                 <div class="info-top">
