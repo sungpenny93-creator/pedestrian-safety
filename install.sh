@@ -34,7 +34,7 @@ PROJECT_DIR="pedestrian-safety"
 if [ ! -d ".git" ]; then
     echo "[2/4] 正在從 GitHub 下載程式碼..."
     if [ ! -d "$PROJECT_DIR" ]; then
-        git clone https://github.com/Nono0325/pedestrian-safety.git
+        git clone https://github.com/sungpenny93-creator/pedestrian-safety.git
     fi
     cd "$PROJECT_DIR"
 fi

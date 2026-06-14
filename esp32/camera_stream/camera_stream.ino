@@ -15,8 +15,8 @@
 // ===================
 // WIFI CREDENTIALS
 // ===================
-const char *ssid = WIFI_SSID;
-const char *password = WIFI_PASS;
+const char *ssid = "OneStepAhead_AP";
+const char *password = "NonoSafety@2026";
 
 #define ALARM_PIN 12 // Moved from 13 to avoid HS2_DATA3 (SD Card) conflict
 #define FLASH_PIN 4
@@ -175,8 +175,9 @@ void setup() {
   config.pin_reset = RESET_GPIO_NUM;
   config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_JPEG;
-  config.frame_size = FRAMESIZE_QVGA; 
-  config.jpeg_quality = 15; 
+  config.frame_size = FRAMESIZE_QQVGA;
+  config.jpeg_quality = 40; 
+  config.fb_count = 1;
   
   Serial.println("Initialzing ESP32-CAM Safety System (Optimized)...");
 
