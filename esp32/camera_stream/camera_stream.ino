@@ -196,22 +196,26 @@ void setup() {
   Serial.println("Resting power for 2 seconds to recharge capacitors...");// HAN ADD
   delay(2000); // 強制暫停 2 秒，讓電壓回升穩定// HAN ADD
   Serial.println("Starting Wi-Fi in AP+STA Mode...");
+  // 先徹底清除舊的 Wi-Fi 記憶 (NVS)，避免卡死
+  WiFi.disconnect(true, true);
+  delay(500);
   WiFi.mode(WIFI_AP_STA); 
   
-  // 1. 建立讓您手機可以直接連的 Wi-Fi 熱點 
-  // (重要修正：強制與樹莓派同樣使用「頻道 6」，否則 ESP32 的單一 Wi-Fi 晶片會因為頻道衝突而無法同時連線)
+  // 1. 建立讓您手機可以「隨時直連測試」的 Wi-Fi 熱點 
+  // (強制與樹莓派同樣使用「頻道 1」，避免晶片頻道衝突)
   IPAddress local_IP(192, 168, 5, 1);
   IPAddress gateway(192, 168, 5, 1);
   IPAddress subnet(255, 255, 255, 0);
   WiFi.softAPConfig(local_IP, gateway, subnet);
-  WiFi.softAP("ESP32_Test_Cam", "12345678", 6);
+  WiFi.softAP("ESP32_Test_Cam", "12345678", 1);
   Serial.print("AP IP Address (For direct viewing): ");
   Serial.println(WiFi.softAPIP());
 
-  // 2. 同時嘗試連線到樹莓派
+  // 2. 同時在背景嘗試連線到樹莓派
   Serial.printf("Connecting to Raspberry Pi Wi-Fi: %s\n", ssid);
   WiFi.begin(ssid, password);
-  // 我們只等 5 秒，不要死等，這樣熱點功能才不會被卡住
+  
+  // 只等 5 秒，不管有沒有連上都繼續往下走，這樣您才能立刻連熱點看畫面！
   int attempts = 0;
   while (WiFi.status() != WL_CONNECTED && attempts < 10) {
     delay(500);
@@ -252,20 +256,18 @@ void setup() {
   }
 }
 
-  // 背景自動重連機制 (輕量化，不卡死串流)
 void loop() { 
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi to Pi lost. Attempting to reconnect...");
     WiFi.disconnect();
     WiFi.begin(ssid, password);
     unsigned long start_ms = millis();
-    // 只等 3 秒，連不上就算了下次 loop 再試，以免影像卡頓
-    while (WiFi.status() != WL_CONNECTED && millis() - start_ms < 3000) {
+    while (WiFi.status() != WL_CONNECTED && millis() - start_ms < 5000) {
       delay(500);
     }
     if (WiFi.status() == WL_CONNECTED) {
       Serial.println("\nWiFi Restored to Pi!");
-      Serial.print("New STA IP: ");
+      Serial.print("New IP Address: ");
       Serial.println(WiFi.localIP());
     }
   }
