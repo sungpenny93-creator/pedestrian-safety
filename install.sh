@@ -63,7 +63,8 @@ for path in glob.glob('venv/lib/python*/site-packages/**/*.dist-info/METADATA', 
 sudo apt-get clean
 rm -rf ~/.cache/pip
 
-python3 -m venv venv
+rm -rf venv
+python3 -m venv --system-site-packages venv
 source venv/bin/activate
 
 # 立即修復先前遺留的任何編碼問題
