@@ -149,10 +149,13 @@ esp_err_t stream_handler(httpd_req_t *req) {
 }
 
 void setup() {
-  // Power stability: Disable brownout detector
-  // WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
-
+  // 關鍵修復：關閉「低電壓檢測 (Brownout Detector)」
+  // 這個警告代表您的電源線或豆腐頭在 Wi-Fi 啟動瞬間供電不足，導致晶片崩潰重啟！
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); 
+  
   Serial.begin(115200);
+  Serial.setDebugOutput(true);
+  Serial.println();
   pinMode(ALARM_PIN, OUTPUT);
   digitalWrite(ALARM_PIN, LOW);
   pinMode(HALL_SENSOR_PIN, INPUT);
@@ -195,29 +198,21 @@ void setup() {
   Serial.println("Camera OK!");
   Serial.println("Resting power for 2 seconds to recharge capacitors...");// HAN ADD
   delay(2000); // 強制暫停 2 秒，讓電壓回升穩定// HAN ADD
-  Serial.println("Starting Wi-Fi in AP+STA Mode...");
+  Serial.printf("Connecting to Raspberry Pi Wi-Fi (Pure STA): %s\n", ssid);
   // 先徹底清除舊的 Wi-Fi 記憶 (NVS)，避免卡死
   WiFi.disconnect(true, true);
   delay(500);
-  WiFi.mode(WIFI_AP_STA); 
   
-  // 1. 建立讓您手機可以「隨時直連測試」的 Wi-Fi 熱點 
-  // (強制與樹莓派同樣使用「頻道 1」，避免晶片頻道衝突)
-  IPAddress local_IP(192, 168, 5, 1);
-  IPAddress gateway(192, 168, 5, 1);
-  IPAddress subnet(255, 255, 255, 0);
-  WiFi.softAPConfig(local_IP, gateway, subnet);
-  WiFi.softAP("ESP32_Test_Cam", "12345678", 1);
-  Serial.print("AP IP Address (For direct viewing): ");
-  Serial.println(WiFi.softAPIP());
-
-  // 2. 同時在背景嘗試連線到樹莓派
-  Serial.printf("Connecting to Raspberry Pi Wi-Fi: %s\n", ssid);
+  WiFi.mode(WIFI_STA); 
+  
+  // 關鍵修復2：限制發射功率，我們把功率降到最低 (2dBm) 避免硬體崩潰
+  WiFi.setTxPower(WIFI_POWER_2dBm);
+  
   WiFi.begin(ssid, password);
   
-  // 只等 5 秒，不管有沒有連上都繼續往下走，這樣您才能立刻連熱點看畫面！
+  // 給它 10 秒去連線
   int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 10) {
+  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
     delay(500);
     Serial.print(".");
     attempts++;
@@ -270,6 +265,10 @@ void loop() {
       Serial.print("New IP Address: ");
       Serial.println(WiFi.localIP());
     }
+  } else {
+    // 正常連線時的報平安機制 (Heartbeat)，每 10 秒印出一次狀態
+    Serial.print("[Heartbeat] WiFi Connected to Pi. IP: ");
+    Serial.println(WiFi.localIP());
   }
-  delay(10000); 
+  delay(1000); 
 }
