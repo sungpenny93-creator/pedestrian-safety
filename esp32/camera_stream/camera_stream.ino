@@ -195,19 +195,31 @@ void setup() {
   Serial.println("Camera OK!");
   Serial.println("Resting power for 2 seconds to recharge capacitors...");// HAN ADD
   delay(2000); // 強制暫停 2 秒，讓電壓回升穩定// HAN ADD
-  Serial.printf("Connecting to WiFi: %s\n", ssid);
-  WiFi.mode(WIFI_STA); // HAN ADD
-  WiFi.disconnect();   // HAN ADD
-  delay(100);          // HAN ADD
-  WiFi.setTxPower(WIFI_POWER_8_5dBm);
+  Serial.println("Starting Wi-Fi in AP+STA Mode...");
+  WiFi.mode(WIFI_AP_STA); 
+  
+  // 1. 建立讓您手機可以直接連的 Wi-Fi 熱點 (網址固定為 http://192.168.4.1/stream?auth=penny_safety2026)
+  WiFi.softAP("ESP32_Test_Cam", "12345678");
+  Serial.print("AP IP Address (For direct viewing): ");
+  Serial.println(WiFi.softAPIP());
+
+  // 2. 同時嘗試連線到樹莓派
+  Serial.printf("Connecting to Raspberry Pi Wi-Fi: %s\n", ssid);
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
+  // 我們只等 5 秒，不要死等，這樣熱點功能才不會被卡住
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 10) {
     delay(500);
     Serial.print(".");
+    attempts++;
   }
-  Serial.println("\nWiFi Connected!");
-  Serial.print("IP Address: ");
-  Serial.println(WiFi.localIP());
+  if(WiFi.status() == WL_CONNECTED) {
+    Serial.println("\nConnected to Pi!");
+    Serial.print("STA IP Address (For Pi to access): ");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println("\nFailed to connect to Pi immediately. Will keep trying in background.");
+  }
 
   // Setup mDNS Discovery
   String hostname = "esp32-safety-" + String((uint32_t)ESP.getEfuseMac(), HEX);
@@ -235,19 +247,21 @@ void setup() {
   }
 }
 
+  // 背景自動重連機制 (輕量化，不卡死串流)
 void loop() { 
-  // Resilience: Check WiFi connectivity and reconnect if necessary
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("WiFi connection lost. Reconnecting...");
+    Serial.println("WiFi to Pi lost. Attempting to reconnect...");
     WiFi.disconnect();
     WiFi.begin(ssid, password);
     unsigned long start_ms = millis();
-    while (WiFi.status() != WL_CONNECTED && millis() - start_ms < 15000) {
+    // 只等 3 秒，連不上就算了下次 loop 再試，以免影像卡頓
+    while (WiFi.status() != WL_CONNECTED && millis() - start_ms < 3000) {
       delay(500);
-      Serial.print(".");
     }
     if (WiFi.status() == WL_CONNECTED) {
-      Serial.println("\nWiFi Restored!");
+      Serial.println("\nWiFi Restored to Pi!");
+      Serial.print("New STA IP: ");
+      Serial.println(WiFi.localIP());
     }
   }
   delay(10000); 

@@ -31,6 +31,8 @@ nmcli con modify "$SSID" wifi-sec.psk "$PASSWORD"
 nmcli con modify "$SSID" ipv4.method shared ipv4.addresses "$IP_ADDR"
 # 強制設定為 2.4GHz 頻段，ESP32 才抓得到
 nmcli con modify "$SSID" 802-11-wireless.band bg
+# 強制設定頻道為 6，避免 ESP32 抓不到 12/13 頻道
+nmcli con modify "$SSID" 802-11-wireless.channel 6
 
 echo "[3/4] Starting AP..."
 nmcli con up "$SSID"
