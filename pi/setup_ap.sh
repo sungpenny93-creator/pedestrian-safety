@@ -29,6 +29,8 @@ nmcli con add type wifi ifname wlan0 mode ap con-name "$SSID" ssid "$SSID"
 nmcli con modify "$SSID" wifi-sec.key-mgmt wpa-psk
 nmcli con modify "$SSID" wifi-sec.psk "$PASSWORD"
 nmcli con modify "$SSID" ipv4.method shared ipv4.addresses "$IP_ADDR"
+# 強制設定為 2.4GHz 頻段，ESP32 才抓得到
+nmcli con modify "$SSID" 802-11-wireless.band bg
 
 echo "[3/4] Starting AP..."
 nmcli con up "$SSID"
