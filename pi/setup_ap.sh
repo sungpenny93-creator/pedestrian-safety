@@ -33,6 +33,8 @@ nmcli con modify "$SSID" ipv4.method shared ipv4.addresses "$IP_ADDR"
 nmcli con modify "$SSID" 802-11-wireless.band bg
 # 強制設定頻道為 6，避免 ESP32 抓不到 12/13 頻道
 nmcli con modify "$SSID" 802-11-wireless.channel 6
+# 關閉 PMF (Protected Management Frames)，這是導致 ESP32 無法連上現代 Linux 熱點的頭號殺手
+nmcli con modify "$SSID" wifi-sec.pmf 1
 
 echo "[3/4] Starting AP..."
 nmcli con up "$SSID"

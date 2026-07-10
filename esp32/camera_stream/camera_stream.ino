@@ -198,8 +198,13 @@ void setup() {
   Serial.println("Starting Wi-Fi in AP+STA Mode...");
   WiFi.mode(WIFI_AP_STA); 
   
-  // 1. 建立讓您手機可以直接連的 Wi-Fi 熱點 (網址固定為 http://192.168.4.1/stream?auth=penny_safety2026)
-  WiFi.softAP("ESP32_Test_Cam", "12345678");
+  // 1. 建立讓您手機可以直接連的 Wi-Fi 熱點 
+  // (重要修正：強制與樹莓派同樣使用「頻道 6」，否則 ESP32 的單一 Wi-Fi 晶片會因為頻道衝突而無法同時連線)
+  IPAddress local_IP(192, 168, 5, 1);
+  IPAddress gateway(192, 168, 5, 1);
+  IPAddress subnet(255, 255, 255, 0);
+  WiFi.softAPConfig(local_IP, gateway, subnet);
+  WiFi.softAP("ESP32_Test_Cam", "12345678", 6);
   Serial.print("AP IP Address (For direct viewing): ");
   Serial.println(WiFi.softAPIP());
 
