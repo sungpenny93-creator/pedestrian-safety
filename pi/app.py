@@ -29,13 +29,13 @@ CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 
 def load_config():
     if not os.path.exists(CONFIG_PATH):
-        return {"cameras": [], "security": {"api_key": "nono_safety_sec_2026"}}
+        return {"cameras": [], "security": {"api_key": "penny_safety2026"}}
     try:
         with open(CONFIG_PATH, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
         print(f"⚠️ [CONFIG] 無法讀取設定檔: {e}")
-        return {"cameras": [], "security": {"api_key": "nono_safety_sec_2026"}}
+        return {"cameras": [], "security": {"api_key": "penny_safety2026"}}
 
 config = load_config()
 API_KEY = config.get("security", {}).get("api_key", "")
@@ -162,7 +162,7 @@ class PedestrianTracker:
         if expired:
             add_log(f"🧹 [GC] 已清理 {len(expired)} 個過期追蹤 ID ({self.cam_ip})", "DEBUG")
 
-    def update(self, track_id, pos_ground):
+    def update(self, track_id, pos_ground, vehicle_detected):
         now = time.time()
         if track_id not in self.tracks:
             self.tracks[track_id] = {'last_pos': pos_ground, 'last_time': now, 'intent_count': 0}
@@ -182,8 +182,10 @@ class PedestrianTracker:
             info['intent_count'] = max(0, info['intent_count'] - 1)
         
         if info['intent_count'] >= INTENT_MIN_FRAMES:
-            is_intent = True
-            self.trigger_alarm()
+            # 雙重驗證：行人有意圖穿越 且 感測器偵測到車輛
+            if vehicle_detected:
+                is_intent = True
+                self.trigger_alarm()
             
         info['last_pos'] = pos_ground
         info['last_time'] = now
@@ -192,9 +194,30 @@ class PedestrianTracker:
 # Global instances map
 trackers = {}
 
+def detect_pedestrians(frame):
+    """
+    虛擬推論函式。
+    目前使用 YOLOv8，未來可替換為 Hailo-8L 的推論邏輯。
+    回傳值預期格式：List[Tuple[int, float, float, float, float]]
+    即：[(track_id, x1, y1, x2, y2), ...]
+    """
+    global model
+    if model is None: return []
+    
+    results = model.track(frame, persist=True, classes=[0], tracker="bytetrack.yaml", verbose=False, imgsz=320)
+    detections = []
+    
+    if results[0].boxes.id is not None:
+        boxes = results[0].boxes.xyxy.cpu().numpy()
+        ids = results[0].boxes.id.cpu().numpy().astype(int)
+        for box, track_id in zip(boxes, ids):
+            detections.append((track_id, box[0], box[1], box[2], box[3]))
+            
+    return detections
+
 def process_ai_frame(frame, cam_id):
     """同步阻塞的 AI 處理函式"""
-    global model, transformer
+    global transformer
     
     if cam_id not in trackers:
         cam = next((c for c in config["cameras"] if c["id"] == cam_id), None)
@@ -204,28 +227,26 @@ def process_ai_frame(frame, cam_id):
     tracker_logic = trackers[cam_id]
     tracker_logic.reset_alarm_if_needed()
     
-    # 定期清理記憶體（簡單作法：透過機率約略每百幀清理一次）
+    # 定期清理記憶體
     if np.random.rand() < 0.01:
         tracker_logic.cleanup_tracks()
     
-    # 推論 (針對單一攝影機使用預設 tracker，多台攝影機的話需設定各自獨立的追蹤配置，
-    # 這裡我們假設主相機才進行推論，因此 bytetrack_yaml 不會互相干擾)
-    results = model.track(frame, persist=True, classes=[0], tracker="bytetrack.yaml", verbose=False, imgsz=320)
+    # 取得最新車輛偵測狀態（透過 status_cache）
+    vehicle_detected = status_cache.get(cam_id, {}).get("vehicle_detected", False)
     
-    if results[0].boxes.id is not None:
-        boxes = results[0].boxes.xyxy.cpu().numpy()
-        ids = results[0].boxes.id.cpu().numpy().astype(int)
+    # 推論 (透過抽離出的虛擬函式)
+    detections = detect_pedestrians(frame)
+    
+    for track_id, x1, y1, x2, y2 in detections:
+        foot_x, foot_y = (x1 + x2) / 2, y2
+        gx, gy = transformer.transform(foot_x, foot_y)
+        is_danger = tracker_logic.update(track_id, (gx, gy), vehicle_detected)
         
-        for box, track_id in zip(boxes, ids):
-            foot_x, foot_y = (box[0] + box[2]) / 2, box[3]
-            gx, gy = transformer.transform(foot_x, foot_y)
-            is_danger = tracker_logic.update(track_id, (gx, gy))
-            
-            # 視覺回饋
-            color = (0, 0, 255) if is_danger else (0, 255, 0)
-            cv2.circle(frame, (int(foot_x), int(foot_y)), 6, color, -1)
-            cv2.putText(frame, f"ID:{track_id} {gy:.1f}m", (int(box[0]), int(box[1]-5)), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        # 視覺回饋
+        color = (0, 0, 255) if is_danger else (0, 255, 0)
+        cv2.circle(frame, (int(foot_x), int(foot_y)), 6, color, -1)
+        cv2.putText(frame, f"ID:{track_id} {gy:.1f}m", (int(x1), int(y1-5)), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
     return frame
 
 # ===================
@@ -277,7 +298,7 @@ async def fetch_camera_data(cam_id: int, ip: str, is_main_camera: bool):
                         status_cache[cam_id] = {"error": f"HTTP {resp.status_code}", "tcp": "OPEN"}
                 except Exception:
                     status_cache[cam_id] = {"error": "Timeout", "tcp": "CLOSED"}
-                await asyncio.sleep(5)
+                await asyncio.sleep(1)
 
     async def poll_video():
         reconnect_delay = 5

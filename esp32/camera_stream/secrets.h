@@ -1,9 +1,11 @@
 #ifndef SECRETS_H
 #define SECRETS_H
 
-// --- Wi-Fi Credentials ---
-#define WIFI_SSID "OneStepAhead_AP"
-#define WIFI_PASS "PennySafety@2026"
+// ===================
+// WIFI CREDENTIALS
+// ===================
+#define SECRET_WIFI_SSID "OneStepAhead_AP"
+#define SECRET_WIFI_PASSWORD "PennySafety@2026"
 
 // --- Security API Key ---
 // 所有對 ESP32 的請求都必須包含 ?auth=YOUR_API_KEY

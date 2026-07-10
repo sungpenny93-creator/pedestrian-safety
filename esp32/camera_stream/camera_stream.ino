@@ -15,10 +15,11 @@
 // ===================
 // WIFI CREDENTIALS
 // ===================
-const char *ssid = "OneStepAhead_AP";
-const char *password = "PennySafety@2026";
+const char *ssid = SECRET_WIFI_SSID;
+const char *password = SECRET_WIFI_PASSWORD;
 
 #define ALARM_PIN 12 // Moved from 13 to avoid HS2_DATA3 (SD Card) conflict
+#define HALL_SENSOR_PIN 14
 #define FLASH_PIN 4
 
 httpd_handle_t stream_httpd = NULL;
@@ -92,8 +93,9 @@ esp_err_t status_handler(httpd_req_t *req) {
   float sensor_val = analogRead(34) * (3.3 / 4095.0);
 
   snprintf(json_response, sizeof(json_response),
-           "{\"rssi\": %d, \"uptime\": %lu, \"sensor\": %.2f, \"alarm\": %d}",
-           rssi, uptime, sensor_val, digitalRead(ALARM_PIN));
+           "{\"rssi\": %d, \"uptime\": %lu, \"sensor\": %.2f, \"alarm\": %d, \"vehicle_detected\": %s}",
+           rssi, uptime, sensor_val, digitalRead(ALARM_PIN),
+           digitalRead(HALL_SENSOR_PIN) == HIGH ? "true" : "false");
 
   httpd_resp_set_type(req, "application/json");
   httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
@@ -148,11 +150,12 @@ esp_err_t stream_handler(httpd_req_t *req) {
 
 void setup() {
   // Power stability: Disable brownout detector
-  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
+  // WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
 
   Serial.begin(115200);
   pinMode(ALARM_PIN, OUTPUT);
   digitalWrite(ALARM_PIN, LOW);
+  pinMode(HALL_SENSOR_PIN, INPUT);
 
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
@@ -190,8 +193,13 @@ void setup() {
     }
   }
   Serial.println("Camera OK!");
-
+  Serial.println("Resting power for 2 seconds to recharge capacitors...");// HAN ADD
+  delay(2000); // 強制暫停 2 秒，讓電壓回升穩定// HAN ADD
   Serial.printf("Connecting to WiFi: %s\n", ssid);
+  WiFi.mode(WIFI_STA); // HAN ADD
+  WiFi.disconnect();   // HAN ADD
+  delay(100);          // HAN ADD
+  WiFi.setTxPower(WIFI_POWER_8_5dBm);
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);

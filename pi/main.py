@@ -5,7 +5,7 @@ import requests
 import json
 import threading
 import numpy as np
-from ultralytics import YOLO
+# from ultralytics import YOLO
 from utils import HomographyTransformer, calculate_velocity, is_approaching_curb
 
 # ===================
@@ -115,7 +115,7 @@ class PedestrianTracker:
 
 def main():
     print("🚀 [INIT] 正在載入 YOLOv8 模型...")
-    model = YOLO(MODEL_PATH)
+    # model = YOLO(MODEL_PATH)
     transformer = HomographyTransformer(SRC_PTS, DST_PTS)
     tracker_logic = PedestrianTracker()
     frame_count = 0
@@ -149,23 +149,23 @@ def main():
             tracker_logic.cleanup_tracks()
 
         # 推論 (imgsz=320 以提升 Pi 5 效能)
-        results = model.track(frame, persist=True, classes=[0], tracker="bytetrack.yaml", verbose=False, imgsz=320)
+        # results = model.track(frame, persist=True, classes=[0], tracker="bytetrack.yaml", verbose=False, imgsz=320)
         
-        if results[0].boxes.id is not None:
-            boxes = results[0].boxes.xyxy.cpu().numpy()
-            ids = results[0].boxes.id.cpu().numpy().astype(int)
+        # if results[0].boxes.id is not None:
+        #     boxes = results[0].boxes.xyxy.cpu().numpy()
+        #     ids = results[0].boxes.id.cpu().numpy().astype(int)
             
-            for box, track_id in zip(boxes, ids):
-                # 以腳部位置作為地面坐標參考點
-                foot_x, foot_y = (box[0] + box[2]) / 2, box[3]
-                gx, gy = transformer.transform(foot_x, foot_y)
-                is_danger = tracker_logic.update(track_id, (gx, gy))
+        #     for box, track_id in zip(boxes, ids):
+        #         # 以腳部位置作為地面坐標參考點
+        #         foot_x, foot_y = (box[0] + box[2]) / 2, box[3]
+        #         gx, gy = transformer.transform(foot_x, foot_y)
+        #         is_danger = tracker_logic.update(track_id, (gx, gy))
                 
-                # 繪製視覺反饋
-                color = (0, 0, 255) if is_danger else (0, 255, 0)
-                cv2.circle(frame, (int(foot_x), int(foot_y)), 6, color, -1)
-                cv2.putText(frame, f"ID:{track_id} {gy:.1f}m", (int(box[0]), int(box[1]-5)), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        #         # 繪製視覺反饋
+        #         color = (0, 0, 255) if is_danger else (0, 255, 0)
+        #         cv2.circle(frame, (int(foot_x), int(foot_y)), 6, color, -1)
+        #         cv2.putText(frame, f"ID:{track_id} {gy:.1f}m", (int(box[0]), int(box[1]-5)), 
+        #                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
         cv2.imshow("先行一步: AI 核心處理終端", frame)
         if cv2.waitKey(1) & 0xFF == ord('q'): break
