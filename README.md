@@ -45,9 +45,11 @@
 ```bash
 curl -sSL https://raw.githubusercontent.com/sungpenny93-creator/pedestrian-safety/main/install.sh | bash
 ```
-安裝完成後執行：
-1. **啟動辨識主程式**: `venv/bin/python3 pi/main.py`
-2. **啟動管理介面**: `venv/bin/python3 pi/dashboard.py` (瀏覽器訪問：http://localhost:8000)
+安裝完成後，只需執行一鍵啟動腳本：
+```bash
+bash start.sh
+```
+*(系統會自動啟動 AI 辨識與 FastAPI 儀表板，瀏覽器訪問：http://localhost:8000)*
 
 ### B. ESP32-CAM 端 (採集端)
 1. 使用 Arduino IDE 開啟 `esp32/camera_stream.ino`。
@@ -96,7 +98,7 @@ curl -sSL https://raw.githubusercontent.com/sungpenny93-creator/pedestrian-safet
    pip install -r pi/requirements.txt
    ```
 2. **啟動模擬器**: `python pi/mock_esp32.py`
-3. **啟動管理介面**: `python pi/dashboard.py`
+3. **啟動系統**: `python pi/app.py`
 4. 訪問 http://localhost:8000 即可看到虛擬測試畫面與網路診斷數據。
 
 ---
@@ -107,8 +109,9 @@ curl -sSL https://raw.githubusercontent.com/sungpenny93-creator/pedestrian-safet
 ├── esp32/            # ESP32-CAM 韌體源碼 (C++)
 ├── pi/
 │   ├── templates/    # Web 管理介面 UI (HTML/CSS)
-│   ├── main.py       # AI 辨識主核心
-│   ├── dashboard.py  # FastAPI 後端管理系統
+│   ├── app.py        # 整合版主程式 (AI 辨識 + FastAPI 儀表板)
+│   ├── main.py       # (舊版保留) 獨立 AI 辨識模組
+│   ├── dashboard.py  # (舊版保留) 獨立 FastAPI 後端
 │   ├── mock_esp32.py # 軟體模擬器
 │   └── utils.py      # 通用工具函式
 ├── install.sh        # 環境安裝腳本 (Linux)

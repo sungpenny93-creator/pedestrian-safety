@@ -17,24 +17,17 @@ if [ ! -d "venv" ]; then
     exit 1
 fi
 
-# 啟動 Web 儀表板 (背景執行)
-echo "[1/2] 正在啟動 Web 儀表板 (Port 8000)..."
-venv/bin/python3 pi/dashboard.py &
-DASHBOARD_PID=$!
-
-# 等待一下確保後端啟動
-sleep 3
-
-# 啟動 AI 辨識主程式 (前景執行，以便觀察 YOLO 日誌)
-echo "[2/2] 正在啟動 AI 辨識主程式..."
+# 啟動整合版主程式 (FastAPI + YOLO)
+echo "[1/1] 正在啟動 AI 辨識系統與 Web 儀表板..."
 echo "------------------------------------------"
-echo "提示: 按 Ctrl+C 兩次可完整停止所有程式。"
+echo "提示: 按 Ctrl+C 可完整停止服務。"
 echo "------------------------------------------"
-venv/bin/python3 pi/main.py
 
-# 當 AI 結束時，也關掉背景的儀表板
-echo "🛑 正在關閉背景服務..."
-kill $DASHBOARD_PID 2>/dev/null
-wait $DASHBOARD_PID 2>/dev/null
+# 貼心功能：自動清理卡住的通訊埠，避免 Address already in use 錯誤
+echo "正在清理占用 Port 8000 的舊程序..."
+fuser -k 8000/tcp 2>/dev/null || true
+sleep 1
 
-echo "✅ 所有系統已結束。"
+venv/bin/python3 pi/app.py
+
+echo "✅ 系統已結束。"
