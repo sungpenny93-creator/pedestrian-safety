@@ -142,8 +142,8 @@ esp_err_t stream_handler(httpd_req_t *req) {
       break;
     }
     
-    // Stability Optimization: Yield to TCP/IP stack
-    delay(1); 
+    // Stability Optimization: Yield to TCP/IP stack AND rest power supply
+    delay(100); 
   }
   return res;
 }

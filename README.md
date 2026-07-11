@@ -41,15 +41,31 @@
 ## 🚀 快速開始 (Quick Start)
 
 ### A. Raspberry Pi 端 (處理中心)
-在您的 Raspberry Pi 終端機執行以下指令進行自動化安裝：
+
+**【第一步：自動化環境安裝】** (僅首次建置需要)
+打開 Raspberry Pi 終端機，執行一鍵下載與安裝指令：
 ```bash
 curl -sSL https://raw.githubusercontent.com/sungpenny93-creator/pedestrian-safety/main/install.sh | bash
 ```
-安裝完成後，只需執行一鍵啟動腳本：
+
+**【第二步：開啟 Wi-Fi 基地台】** (每次開機或展示前)
+為了讓 ESP32 攝影機能夠連線，並讓您的手機/筆電能觀看畫面，請將樹莓派切換為熱點模式：
+```bash
+cd pedestrian-safety
+sudo bash pi/setup_ap.sh
+```
+*(執行後，樹莓派會發射名為 `OneStepAhead_AP` 的 Wi-Fi 訊號，密碼：PennySafety@2026)*
+
+**【第三步：啟動 AI 與儀表板】**
+確認 ESP32 已經通電後，執行一鍵啟動腳本：
 ```bash
 bash start.sh
 ```
-*(系統會自動啟動 AI 辨識與 FastAPI 儀表板，瀏覽器訪問：http://localhost:8000)*
+*(系統會自動清理佔用的 Port，並啟動 YOLO 辨識與 FastAPI 儀表板)*
+
+**【第四步：觀看成果畫面】**
+用手機或筆電連上 `OneStepAhead_AP` 的 Wi-Fi，打開瀏覽器訪問：
+👉 **`http://192.168.4.1:8000`**
 
 ### B. ESP32-CAM 端 (採集端)
 1. 使用 Arduino IDE 開啟 `esp32/camera_stream.ino`。
