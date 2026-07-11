@@ -252,13 +252,25 @@ void setup() {
 }
 
 void loop() { 
+  // ========== 硬體快速測試模式 ==========
+  // 即時讀取霍爾感測器 (預設 LOW 觸發)，並馬上控制繼電器
+  if (digitalRead(HALL_SENSOR_PIN) == LOW) {
+    digitalWrite(ALARM_PIN, HIGH);
+  } else {
+    digitalWrite(ALARM_PIN, LOW);
+  }
+  // ======================================
+
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi to Pi lost. Attempting to reconnect...");
     WiFi.disconnect();
     WiFi.begin(ssid, password);
     unsigned long start_ms = millis();
     while (WiFi.status() != WL_CONNECTED && millis() - start_ms < 5000) {
-      delay(500);
+      // 就算在等 Wi-Fi，硬體測試也要保持即時反應！
+      if (digitalRead(HALL_SENSOR_PIN) == LOW) digitalWrite(ALARM_PIN, HIGH);
+      else digitalWrite(ALARM_PIN, LOW);
+      delay(50);
     }
     if (WiFi.status() == WL_CONNECTED) {
       Serial.println("\nWiFi Restored to Pi!");
