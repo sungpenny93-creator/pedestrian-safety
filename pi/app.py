@@ -330,44 +330,47 @@ async def fetch_camera_data(cam_id: int, ip: str, is_main_camera: bool):
                             if is_shutting_down: break
                             buffer += chunk
                             
+                            latest_jpg = None
                             while True:
                                 a = buffer.find(b'\xff\xd8')
                                 b = buffer.find(b'\xff\xd9')
                                 if a != -1 and b != -1 and b > a:
-                                    jpg = buffer[a:b+2]
+                                    latest_jpg = buffer[a:b+2]
                                     buffer = buffer[b+2:]
-                                    
-                                    loop = asyncio.get_event_loop()
-                                    frame = await loop.run_in_executor(None, lambda: cv2.imdecode(np.frombuffer(jpg, np.uint8), cv2.IMREAD_COLOR))
-                                    
-                                    if frame is not None:
-                                        h, w = frame.shape[:2]
-                                        if w != 640 or h != 480:
-                                            frame = await loop.run_in_executor(None, lambda: cv2.resize(frame, (640, 480)))
-                                        
-                                        # 如果是主攝影機，進行 AI 分析
-                                        if is_main_camera and model is not None:
-                                            # 使用背景任務處理 AI，並自動丟棄來不及處理的影格 (Drop frames)
-                                            # 這能確保網路 TCP 緩衝區被光速清空，ESP32 就不會因為塞車而超時斷線！
-                                            if not getattr(loop, "ai_busy", False):
-                                                loop.ai_busy = True
-                                                async def ai_bg_task(f, cid):
-                                                    try:
-                                                        res_f = await loop.run_in_executor(None, process_ai_frame, f, cid)
-                                                        s, b_jpg = await loop.run_in_executor(None, lambda: cv2.imencode('.jpg', res_f, [cv2.IMWRITE_JPEG_QUALITY, 80]))
-                                                        if s: frame_cache[cid] = b_jpg.tobytes()
-                                                    finally:
-                                                        loop.ai_busy = False
-                                                asyncio.create_task(ai_bg_task(frame.copy(), cam_id))
-                                        else:
-                                            # 只有在有經過縮放後才需要重新編碼，否則直接用原圖
-                                            if w != 640 or h != 480:
-                                                success, buffer_jpg = await loop.run_in_executor(None, lambda: cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80]))
-                                                if success:
-                                                    frame_cache[cam_id] = buffer_jpg.tobytes()
-                                            else:
-                                                frame_cache[cam_id] = jpg 
                                 else:
+                                    break
+                                    
+                            if latest_jpg is not None:
+                                loop = asyncio.get_event_loop()
+                                frame = await loop.run_in_executor(None, lambda: cv2.imdecode(np.frombuffer(latest_jpg, np.uint8), cv2.IMREAD_COLOR))
+                                
+                                if frame is not None:
+                                    h, w = frame.shape[:2]
+                                    if w != 640 or h != 480:
+                                        frame = await loop.run_in_executor(None, lambda: cv2.resize(frame, (640, 480)))
+                                    
+                                    # 如果是主攝影機，進行 AI 分析
+                                    if is_main_camera and model is not None:
+                                        # 使用背景任務處理 AI，並自動丟棄來不及處理的影格 (Drop frames)
+                                        # 這能確保網路 TCP 緩衝區被光速清空，ESP32 就不會因為塞車而超時斷線！
+                                        if not getattr(loop, "ai_busy", False):
+                                            loop.ai_busy = True
+                                            async def ai_bg_task(f, cid):
+                                                try:
+                                                    res_f = await loop.run_in_executor(None, process_ai_frame, f, cid)
+                                                    s, b_jpg = await loop.run_in_executor(None, lambda: cv2.imencode('.jpg', res_f, [cv2.IMWRITE_JPEG_QUALITY, 80]))
+                                                    if s: frame_cache[cid] = b_jpg.tobytes()
+                                                finally:
+                                                    loop.ai_busy = False
+                                            asyncio.create_task(ai_bg_task(frame.copy(), cam_id))
+                                    else:
+                                        # 只有在有經過縮放後才需要重新編碼，否則直接用原圖
+                                        if w != 640 or h != 480:
+                                            success, buffer_jpg = await loop.run_in_executor(None, lambda: cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80]))
+                                            if success:
+                                                frame_cache[cam_id] = buffer_jpg.tobytes()
+                                        else:
+                                            frame_cache[cam_id] = latest_jpg
                                     break
                                     
                             # 把 buffer 限制改小一點，避免塞爆記憶體或讀到過舊的影像資料
