@@ -333,12 +333,19 @@ async def fetch_camera_data(cam_id: int, ip: str, is_main_camera: bool):
                             latest_jpg = None
                             while True:
                                 a = buffer.find(b'\xff\xd8')
-                                b = buffer.find(b'\xff\xd9')
-                                if a != -1 and b != -1 and b > a:
-                                    latest_jpg = buffer[a:b+2]
-                                    buffer = buffer[b+2:]
-                                else:
+                                if a == -1:
+                                    # 找不到起點，保留最後一個 byte 避免切斷標籤
+                                    buffer = buffer[-1:]
                                     break
+                                b = buffer.find(b'\xff\xd9', a)
+                                if b == -1:
+                                    # 有起點但還沒收到終點，把前面的垃圾資料丟掉，等待下一個 chunk
+                                    buffer = buffer[a:]
+                                    break
+                                
+                                # 完整收到一張照片
+                                latest_jpg = buffer[a:b+2]
+                                buffer = buffer[b+2:]
                                     
                             if latest_jpg is not None:
                                 loop = asyncio.get_event_loop()

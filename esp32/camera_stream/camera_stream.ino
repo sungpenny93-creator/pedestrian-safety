@@ -210,8 +210,9 @@ void setup() {
   
   WiFi.mode(WIFI_STA); 
   
-  // 既然您已經使用強大的「雙 UART 穩壓」，我們把 Wi-Fi 功率開回最大，徹底解決封包遺失造成的斷線！
-  WiFi.setTxPower(WIFI_POWER_19_5dBm);
+  // 關鍵修復：把 Wi-Fi 發射功率調到極低 (8.5dBm)
+  // 您的電源線或 USB 供應器無法承受 Wi-Fi 傳輸時的瞬間大電流，導致相機感光元件瞬間缺電當機！
+  WiFi.setTxPower(WIFI_POWER_8_5dBm);
   
   WiFi.begin(ssid, password);
   
