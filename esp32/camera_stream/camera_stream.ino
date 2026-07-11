@@ -118,7 +118,9 @@ esp_err_t stream_handler(httpd_req_t *req) {
   while (true) {
     fb = esp_camera_fb_get();
     if (!fb) {
-      res = ESP_FAIL;
+      Serial.println("Camera hardware crashed! Rebooting to recover...");
+      delay(500);
+      ESP.restart(); // 相機底層硬體一旦死機，必須強制重啟才能恢復！
     } else {
       _jpg_buf_len = fb->len;
       _jpg_buf = fb->buf;
@@ -179,7 +181,7 @@ void setup() {
   config.pin_sscb_scl = SIOC_GPIO_NUM;
   config.pin_pwdn = PWDN_GPIO_NUM;
   config.pin_reset = RESET_GPIO_NUM;
-  config.xclk_freq_hz = 20000000;
+  config.xclk_freq_hz = 10000000; // 降頻至 10MHz，極大增加相機底層硬體穩定度，解決畫面死當
   config.pixel_format = PIXFORMAT_JPEG;
   config.frame_size = FRAMESIZE_QVGA;
   config.jpeg_quality = 50; 
@@ -205,8 +207,8 @@ void setup() {
   
   WiFi.mode(WIFI_STA); 
   
-  // 關鍵修復2：限制發射功率，我們把功率降到最低 (2dBm) 避免硬體崩潰
-  WiFi.setTxPower(WIFI_POWER_2dBm);
+  // 既然您已經使用強大的「雙 UART 穩壓」，我們把 Wi-Fi 功率開回最大，徹底解決封包遺失造成的斷線！
+  WiFi.setTxPower(WIFI_POWER_19_5dBm);
   
   WiFi.begin(ssid, password);
   
@@ -252,14 +254,8 @@ void setup() {
 }
 
 void loop() { 
-  // ========== 硬體快速測試模式 ==========
-  // 即時讀取霍爾感測器 (預設 LOW 觸發)，並馬上控制繼電器
-  if (digitalRead(HALL_SENSOR_PIN) == LOW) {
-    digitalWrite(ALARM_PIN, HIGH);
-  } else {
-    digitalWrite(ALARM_PIN, LOW);
-  }
-  // ======================================
+  // 已經通過硬體測試，將繼電器控制權完全交接給 Raspberry Pi AI 系統
+  // AI 會透過 HTTP /alarm 介面來控制，這裡不再覆寫硬體狀態
 
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi to Pi lost. Attempting to reconnect...");
@@ -267,10 +263,8 @@ void loop() {
     WiFi.begin(ssid, password);
     unsigned long start_ms = millis();
     while (WiFi.status() != WL_CONNECTED && millis() - start_ms < 5000) {
-      // 就算在等 Wi-Fi，硬體測試也要保持即時反應！
-      if (digitalRead(HALL_SENSOR_PIN) == LOW) digitalWrite(ALARM_PIN, HIGH);
-      else digitalWrite(ALARM_PIN, LOW);
-      delay(50);
+      delay(500);
+      Serial.print(".");
     }
     if (WiFi.status() == WL_CONNECTED) {
       Serial.println("\nWiFi Restored to Pi!");

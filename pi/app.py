@@ -314,7 +314,7 @@ async def fetch_camera_data(cam_id: int, ip: str, is_main_camera: bool):
                 reconnect_delay = 5
                 
                 async with httpx.AsyncClient() as client:
-                    async with client.stream("GET", stream_url, timeout=None) as response:
+                    async with client.stream("GET", stream_url, timeout=10.0) as response:
                         if response.status_code != 200:
                             if response.status_code == 401:
                                 add_log(f"🔥 [CAM {cam_id}] 認證失敗 (API Key 錯誤)", "ERROR")
@@ -466,7 +466,7 @@ async def control_led(cam_id: int, state: str):
         except: return {"status": "error"}
 
 async def gen_frames(cam_id: int):
-    while True:
+    while not is_shutting_down:
         if cam_id in frame_cache:
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame_cache[cam_id] + b'\r\n')
@@ -533,7 +533,7 @@ if __name__ == "__main__":
     import signal
 
     port = config.get("server", {}).get("port", 8000)
-    uv_config = uvicorn.Config(app, host="0.0.0.0", port=port, log_level="info")
+    uv_config = uvicorn.Config(app, host="0.0.0.0", port=port, log_level="info", timeout_graceful_shutdown=1)
     server = uvicorn.Server(uv_config)
 
     shutdown_calls = 0
