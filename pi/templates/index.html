@@ -435,6 +435,8 @@
 
     <script>
         const alarmStates = {};
+        const onlineStates = {};
+        let serverWasDown = false;
         const API_KEY = "{{ API_KEY }}";
 
         function openDirect(ip) {
@@ -454,6 +456,14 @@
         async function updateStatus() {
             try {
                 const resp = await fetch('/status');
+                if (!resp.ok) throw new Error("Server error");
+                
+                // 如果伺服器曾經斷線 (例如 app.py 重啟)，現在恢復連線了，直接重新載入整個網頁
+                if (serverWasDown) {
+                    window.location.reload();
+                    return;
+                }
+                
                 const data = await resp.json();
                 data.forEach(cam => {
                     const badge = document.getElementById('badge-' + cam.id);
@@ -464,10 +474,19 @@
                     const hazardBtn = document.getElementById('hazard-' + cam.id);
                     const stateLabel = document.getElementById('alarm-state-' + cam.id);
                     const directLink = document.getElementById('direct-' + cam.id);
+                    const img = document.getElementById('img-' + cam.id);
 
                     if (!tcpStatus || !latencyVal) return;
 
                     alarmStates[cam.id] = cam.alarm;
+                    
+                    const wasOnline = onlineStates[cam.id];
+                    onlineStates[cam.id] = cam.online;
+
+                    if (cam.online && wasOnline === false) {
+                        // 攝影機從斷線恢復，自動刷新影像串流
+                        if (img) img.src = "/video_feed/" + cam.id + "?t=" + new Date().getTime();
+                    }
 
                     if (directLink && cam.ip) {
                         directLink.onclick = () => openDirect(cam.ip);
@@ -503,7 +522,9 @@
                         hazardBtn.classList.remove('hazard-on');
                     }
                 });
-            } catch (e) { }
+            } catch (e) {
+                serverWasDown = true;
+            }
         }
         setInterval(updateStatus, 2000);
         updateStatus();

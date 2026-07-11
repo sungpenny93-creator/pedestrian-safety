@@ -18,8 +18,9 @@
 const char *ssid = SECRET_WIFI_SSID;
 const char *password = SECRET_WIFI_PASSWORD;
 
-#define ALARM_PIN 12 // Moved from 13 to avoid HS2_DATA3 (SD Card) conflict
-#define HALL_SENSOR_PIN 14
+// 腳位定義 (需配合您實際接線)
+#define ALARM_PIN 13        // 控制繼電器的腳位 (換成 13，安全且不會影響開機)
+#define HALL_SENSOR_PIN 14  // 霍爾感測器腳位
 #define FLASH_PIN 4
 
 httpd_handle_t stream_httpd = NULL;

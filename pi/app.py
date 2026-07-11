@@ -197,23 +197,20 @@ trackers = {}
 def detect_pedestrians(frame):
     """
     虛擬推論函式。
-    目前使用 YOLOv8，未來可替換為 Hailo-8L 的推論邏輯。
-    回傳值預期格式：List[Tuple[int, float, float, float, float]]
-    即：[(track_id, x1, y1, x2, y2), ...]
     """
     global model
-    if model is None: return []
+    # === 註解掉推論，停用影像辨識 ===
+    return []
     
-    results = model.track(frame, persist=True, classes=[0], tracker="bytetrack.yaml", verbose=False, imgsz=320)
-    detections = []
-    
-    if results[0].boxes.id is not None:
-        boxes = results[0].boxes.xyxy.cpu().numpy()
-        ids = results[0].boxes.id.cpu().numpy().astype(int)
-        for box, track_id in zip(boxes, ids):
-            detections.append((track_id, box[0], box[1], box[2], box[3]))
-            
-    return detections
+    # if model is None: return []
+    # results = model.track(frame, persist=True, classes=[0], tracker="bytetrack.yaml", verbose=False, imgsz=320)
+    # detections = []
+    # if results[0].boxes.id is not None:
+    #     boxes = results[0].boxes.xyxy.cpu().numpy()
+    #     ids = results[0].boxes.id.cpu().numpy().astype(int)
+    #     for box, track_id in zip(boxes, ids):
+    #         detections.append((track_id, box[0], box[1], box[2], box[3]))
+    # return detections
 
 def process_ai_frame(frame, cam_id):
     """同步阻塞的 AI 處理函式"""
@@ -240,7 +237,10 @@ def process_ai_frame(frame, cam_id):
     for track_id, x1, y1, x2, y2 in detections:
         foot_x, foot_y = (x1 + x2) / 2, y2
         gx, gy = transformer.transform(foot_x, foot_y)
-        is_danger = tracker_logic.update(track_id, (gx, gy), vehicle_detected)
+        # === 使用者要求暫時註解影像辨識觸發警報的部分 ===
+        # is_danger = tracker_logic.update(track_id, (gx, gy), vehicle_detected)
+        is_danger = False 
+        # ===============================================
         
         # 視覺回饋
         color = (0, 0, 255) if is_danger else (0, 255, 0)
@@ -401,9 +401,14 @@ from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global zc_instance, is_shutting_down, model, transformer
-    add_log("🚀 正在載入 YOLO 模型與初始化 Transformer...", "INFO")
-    model = YOLO(MODEL_PATH)
-    transformer = HomographyTransformer(SRC_PTS, DST_PTS)
+    # === 使用者要求：暫時註解影像辨識，不載入模型 ===
+    # add_log("🚀 正在載入 YOLO 模型與初始化 Transformer...", "INFO")
+    # model = YOLO(MODEL_PATH)
+    # transformer = HomographyTransformer(SRC_PTS, DST_PTS)
+    model = None
+    transformer = None
+    add_log("🚀 (影像辨識已註解停用) 系統啟動中...", "INFO")
+    # ===============================================
     
     start_all_fetchers()
     zc_instance = start_mdns_discovery()
