@@ -95,7 +95,7 @@ esp_err_t status_handler(httpd_req_t *req) {
   snprintf(json_response, sizeof(json_response),
            "{\"rssi\": %d, \"uptime\": %lu, \"sensor\": %.2f, \"alarm\": %d, \"vehicle_detected\": %s}",
            rssi, uptime, sensor_val, digitalRead(ALARM_PIN),
-           digitalRead(HALL_SENSOR_PIN) == HIGH ? "true" : "false");
+           digitalRead(HALL_SENSOR_PIN) == LOW ? "true" : "false"); // 修正：霍爾模組是 LOW 觸發
 
   httpd_resp_set_type(req, "application/json");
   httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
@@ -161,6 +161,8 @@ void setup() {
   pinMode(ALARM_PIN, OUTPUT);
   digitalWrite(ALARM_PIN, LOW);
   pinMode(HALL_SENSOR_PIN, INPUT);
+  pinMode(33, OUTPUT); // 初始化內建小紅燈
+  digitalWrite(33, HIGH); // 預設熄滅
 
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
@@ -255,7 +257,12 @@ void setup() {
 
 void loop() { 
   // 已經通過硬體測試，將繼電器控制權完全交接給 Raspberry Pi AI 系統
-  // AI 會透過 HTTP /alarm 介面來控制，這裡不再覆寫硬體狀態
+  // 為了方便視覺確認，我們改用 ESP32 背面的內建小紅燈 (GPIO 33) 來顯示霍爾感應狀態
+  if (digitalRead(HALL_SENSOR_PIN) == LOW) {
+    digitalWrite(33, LOW);  // 亮起內建小紅燈 (代表感應到磁鐵/車輛)
+  } else {
+    digitalWrite(33, HIGH); // 熄滅
+  }
 
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi to Pi lost. Attempting to reconnect...");
