@@ -90,9 +90,8 @@ bash start.sh
 
 ### 安全性防護 (Security)
 
-1. **金鑰隔離**：Wi-Fi 憑證與 API 金鑰存放在 `esp32/secrets.h`，預設不進入版控 (`.gitignore`)。
-2. **API 認證機制**：後端對 ESP32-CAM 的所有 HTTP 請求 (如 `/stream`, `/alarm`) 皆需攜帶 `auth` 參數驗證。
-3. **跨網域保護**：FastAPI 後端已實作 CORS 限制，僅允許授權來源訪問控制端點。
+1. **API 認證機制**：後端對 ESP32-CAM 的所有 HTTP 請求 (如 `/stream`, `/alarm`) 皆需攜帶 `auth` 參數驗證。
+2. **跨網域保護**：FastAPI 後端已實作 CORS 限制，僅允許授權來源訪問控制端點。
 
 ### 常見網路問題排除 (Troubleshooting)
 
