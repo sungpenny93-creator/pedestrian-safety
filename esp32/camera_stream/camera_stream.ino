@@ -145,18 +145,13 @@ esp_err_t stream_handler(httpd_req_t *req) {
       break;
     }
     
-    // 終極省電模式：強迫每次傳輸後休息 200 毫秒 (限制最高 5 FPS)
-    // 讓 USB 變壓器有時間把電壓補回來，絕對不允許連續高壓抽電！
-    delay(200); 
+    // 釋放 CPU，避免看門狗重啟
+    delay(30); 
   }
   return res;
 }
 
 void setup() {
-  // 關鍵修復：關閉「低電壓檢測 (Brownout Detector)」
-  // 這個警告代表您的電源線或豆腐頭在 Wi-Fi 啟動瞬間供電不足，導致晶片崩潰重啟！
-  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); 
-  
   Serial.begin(115200);
   Serial.setDebugOutput(true);
   Serial.println();
@@ -166,12 +161,6 @@ void setup() {
   pinMode(33, OUTPUT); // 初始化內建小紅燈
   digitalWrite(33, HIGH); // 預設熄滅
 
-  // 硬體重置攝影機感光元件 (解決 0x106 錯誤鎖死問題)
-  pinMode(PWDN_GPIO_NUM, OUTPUT);
-  digitalWrite(PWDN_GPIO_NUM, HIGH); // 斷電
-  delay(200);
-  digitalWrite(PWDN_GPIO_NUM, LOW);  // 重新通電
-  delay(200);
 
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
@@ -192,12 +181,12 @@ void setup() {
   config.pin_sscb_scl = SIOC_GPIO_NUM;
   config.pin_pwdn = PWDN_GPIO_NUM;
   config.pin_reset = RESET_GPIO_NUM;
-  // 終極省電模式：時脈降至 5MHz，極大減少發熱與耗電
-  config.xclk_freq_hz = 5000000; 
+  // 恢復標準穩定設定，避免 DMA 緩衝區溢出導致相機當機
+  config.xclk_freq_hz = 20000000; 
   config.pixel_format = PIXFORMAT_JPEG;
-  config.frame_size = FRAMESIZE_VGA; // 改回 VGA，讓畫質保持清晰
-  config.jpeg_quality = 40; // 稍微降低畫質，減少 Wi-Fi 傳輸的資料量
-  config.fb_count = 1; // 只用 1 個 Buffer，減少記憶體耗電
+  config.frame_size = FRAMESIZE_QVGA; 
+  config.jpeg_quality = 12; // 標準畫質
+  config.fb_count = 2; // 必須是 2，否則 Wi-Fi 傳輸時會導致 DMA 溢出當機
   
   Serial.println("Initialzing ESP32-CAM Safety System (Optimized)...");
 
@@ -219,9 +208,8 @@ void setup() {
   
   WiFi.mode(WIFI_STA); 
   
-  // 終極省電模式：把 Wi-Fi 發射功率調到絕對最低 (2dBm)
-  // 只要 ESP32 距離樹莓派不超過 10 公尺，這個功率絕對夠用，而且能保證您的電源線不會崩潰！
-  WiFi.setTxPower(WIFI_POWER_2dBm);
+  // 恢復標準 Wi-Fi 功率，確保連線穩定度
+  WiFi.setTxPower(WIFI_POWER_19_5dBm);
   
   WiFi.begin(ssid, password);
   
