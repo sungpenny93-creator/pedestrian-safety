@@ -27,6 +27,39 @@
 
 ---
 
+## 📂 專案檔案結構與用途說明
+
+以下為本專案的核心目錄結構與各檔案用途解釋，幫助團隊成員與開發者快速掌握系統架構：
+
+```text
+pedestrian-safety/
+├── install.sh                  # [部署] 樹莓派全自動化部署腳本 (安裝系統依賴、Python 虛擬環境、下載模型)
+├── start.sh                    # [部署] Linux/Pi 環境一鍵啟動腳本 (清理 Port 衝突並背景啟動系統)
+├── start.bat                   # [部署] Windows 環境本地測試啟動腳本
+├── README.md                   # 專案主說明文件
+├── .gitignore                  # Git 版本控制忽略清單
+│
+├── esp32/                      # 邊緣攝影機節點 (ESP32-CAM) 韌體原始碼
+│   └── camera_stream/
+│       ├── camera_stream.ino   # [硬體] ESP32 主程式 (硬體初始化、MJPEG 串流、Watchdog、mDNS 廣播、API路由)
+│       ├── camera_pins.h       # [硬體] ESP32-CAM 各腳位定義 (OV2640 相機模組接腳配置)
+│       └── secrets.h           # [硬體] Wi-Fi 連線設定與 API 認證金鑰 (機密資訊設定)
+│
+├── pi/                         # 中樞管理站 (Raspberry Pi 5) 後端與 AI 原始碼
+│   ├── app.py                  # [核心] FastAPI 整合主程式 (處理影像接收、YOLO AI 推論、警報觸發、API 路由)
+│   ├── utils.py                # [核心] AI 工具庫 (包含 Homography 座標轉換、ByteTrack 邏輯、繪圖輔助函數)
+│   ├── config.json             # [配置] 系統設定檔 (API 密鑰、預設攝影機 IP 清單與通訊埠設定)
+│   ├── requirements.txt        # [環境] Python 套件相依清單 (FastAPI, OpenCV, Ultralytics 等)
+│   ├── setup_ap.sh             # [網路] Raspberry Pi 專屬 Wi-Fi 熱點建立腳本 (NetworkManager 進階設定)
+│   ├── mock_esp32.py           # [測試] ESP32 軟體模擬器 (供無硬體時進行 UI 開發與系統壓力測試)
+│   │
+│   └── templates/              # 前端儀表板 UI (HTML/CSS/JS)
+│       ├── index.html          # [前端] 主控儀表板頁面 (顯示影像看板、AI 統計圖表、系統資源監控)
+│       └── settings.html       # [前端] 系統配置中心頁面 (管理 ESP32 節點、TCP 網路診斷、mDNS 自動搜尋)
+```
+
+---
+
 ## 📋 硬體建置指南
 
 ### 1. 零件清單 (BOM)
