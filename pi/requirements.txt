@@ -1,6 +1,6 @@
 opencv-python
 numpy
-# ultralytics will be installed separately to force CPU version
+ultralytics
 lgpio
 requests
 fastapi
@@ -9,4 +9,5 @@ jinja2
 python-multipart
 zeroconf
 httpx
+psutil
 lap

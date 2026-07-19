@@ -2,190 +2,449 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>先行一步 - 系統設定</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>先行一步 · 系統配置中心</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0a0e14;
-            --glass: rgba(255, 255, 255, 0.05);
-            --accent: #ffb300;
-            --info: #00f2ff;
-            --text: #e0e0e0;
+            --bg-primary: #0d1117;
+            --bg-secondary: #151b23;
+            --bg-card: #1c2128;
+            --bg-card-alt: #161b22;
+            --border: rgba(255,255,255,0.06);
+            --border-hover: rgba(255,255,255,0.12);
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --text-muted: #484f58;
+            --accent: #58a6ff;
+            --accent-soft: rgba(88,166,255,0.1);
+            --success: #3fb950;
+            --success-soft: rgba(63,185,80,0.12);
+            --danger: #f85149;
+            --danger-soft: rgba(248,81,73,0.12);
+            --warning: #d29922;
+            --warning-soft: rgba(210,153,34,0.12);
         }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            background-color: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif;
-            padding: 2rem; background: radial-gradient(circle at top right, #1a2a3a, var(--bg));
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
         }
 
-        .container { max-width: 900px; margin: 0 auto; }
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem; }
+        /* ====== HEADER ====== */
+        .top-header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .logo-area {
+            display: flex; align-items: center; gap: 12px;
+        }
+        .logo-icon {
+            width: 36px; height: 36px; border-radius: 10px;
+            background: linear-gradient(135deg, #58a6ff, #bc8cff);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; font-weight: 700; color: #fff;
+        }
+        .logo-text h1 { font-size: 1rem; font-weight: 700; line-height: 1.2; }
+        .logo-text p { font-size: 0.65rem; color: var(--text-secondary); line-height: 1; margin-top: 2px; }
+        .header-actions { display: flex; gap: 10px; align-items: center; }
+        .btn-header {
+            padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);
+            background: var(--bg-card); color: var(--text-primary);
+            font-size: 0.75rem; font-weight: 500; cursor: pointer; transition: 0.2s;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 5px;
+        }
+        .btn-header:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-accent {
+            background: var(--accent-soft); border-color: rgba(88,166,255,0.3);
+            color: var(--accent);
+        }
+        .btn-accent:hover { background: var(--accent); color: #fff; }
 
-        .glass-card {
-            background: var(--glass); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px; padding: 2rem; margin-bottom: 2rem;
+        /* ====== BREADCRUMB ====== */
+        .breadcrumb {
+            padding: 8px 24px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-secondary);
+            font-size: 0.75rem; color: var(--text-muted);
+        }
+        .breadcrumb a { color: var(--text-secondary); text-decoration: none; }
+        .breadcrumb a:hover { color: var(--accent); }
+        .breadcrumb span { margin: 0 6px; }
+
+        /* ====== MAIN CONTENT ====== */
+        .content {
+            max-width: 780px;
+            margin: 30px auto;
+            padding: 0 24px;
+        }
+        .page-title {
+            font-size: 1.5rem; font-weight: 700; margin-bottom: 6px;
+        }
+        .page-subtitle {
+            font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 28px; line-height: 1.5;
         }
 
-        h2 { color: var(--info); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px; }
+        /* ====== CARDS ====== */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .card-header-title {
+            font-size: 0.85rem; font-weight: 600;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .card-body { padding: 16px 20px; }
 
-        .cam-row {
-            display: grid; grid-template-columns: 1fr 1.5fr 100px; gap: 1rem;
-            margin-bottom: 1rem; align-items: center;
+        /* ====== NET INFO ====== */
+        .net-badges {
+            display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;
+        }
+        .net-badge {
+            background: var(--bg-card-alt);
+            border: 1px solid var(--border);
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+        }
+        .net-badge .label { color: var(--text-muted); margin-right: 6px; }
+        .net-badge .val { font-weight: 600; }
+
+        .tcp-test-row {
+            display: flex; gap: 8px; align-items: center;
+        }
+        .tcp-input {
+            background: var(--bg-card-alt);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 7px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            outline: none;
+            width: 180px;
+            font-family: 'Inter', sans-serif;
+        }
+        .tcp-input:focus { border-color: var(--accent); }
+        .btn-tcp {
+            padding: 7px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--accent);
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .btn-tcp:hover { background: var(--accent); color: #fff; }
+
+        /* ====== CAMERA TABLE ====== */
+        .cam-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        .cam-table th {
+            text-align: left;
+            padding: 10px 12px;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+        }
+        .cam-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        .cam-table tr:last-child td { border-bottom: none; }
+        .cam-table .idx {
+            color: var(--text-muted); font-weight: 600; width: 40px;
+        }
+        .cam-table input {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-primary);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            width: 100%;
+            font-family: 'Inter', sans-serif;
+            transition: 0.2s;
+        }
+        .cam-table input:hover { border-color: var(--border-hover); }
+        .cam-table input:focus { border-color: var(--accent); outline: none; background: var(--bg-card-alt); }
+
+        .btn-delete {
+            padding: 4px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(248,81,73,0.3);
+            background: var(--danger-soft);
+            color: var(--danger);
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-delete:hover { background: var(--danger); color: #fff; }
+
+        .table-footer {
+            padding: 14px 20px;
+            border-top: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .table-note {
+            font-size: 0.7rem; color: var(--text-muted);
+            padding: 0 20px 14px; line-height: 1.5;
         }
 
-        input {
-            background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1);
-            color: white; padding: 10px 15px; border-radius: 10px; outline: none;
+        .btn-add {
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
         }
-        input:focus { border-color: var(--info); }
+        .btn-add:hover { border-color: var(--accent); color: var(--accent); }
 
-        .btn {
-            padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer;
-            font-weight: 600; transition: 0.3s; display: inline-flex; align-items: center; gap: 8px;
+        .btn-save {
+            padding: 8px 18px;
+            border-radius: 8px;
+            border: none;
+            background: var(--accent);
+            color: #fff;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex; align-items: center; gap: 6px;
         }
-        .btn-primary { background: var(--info); color: #000; }
-        .btn-outline { background: transparent; border: 1px solid var(--info); color: var(--info); }
-        .btn-danger { background: rgba(255, 75, 92, 0.1); color: #ff4b5c; border: 1px solid #ff4b5c; }
-        .btn:hover { opacity: 0.8; transform: translateY(-2px); }
+        .btn-save:hover { opacity: 0.9; transform: translateY(-1px); }
 
-        /* Discovery List */
-        .discovery-list { margin-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 1rem; }
+        /* ====== DISCOVERY ====== */
+        .discovery-header {
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .btn-scan {
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-card-alt);
+            color: var(--text-primary);
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .btn-scan:hover { border-color: var(--accent); color: var(--accent); }
+        .discovery-note {
+            font-size: 0.7rem; color: var(--text-muted); margin-top: 10px; line-height: 1.5;
+        }
         .discovered-item {
             display: flex; justify-content: space-between; align-items: center;
-            background: rgba(255, 255, 255, 0.03); padding: 12px 20px; border-radius: 12px; margin-bottom: 8px;
+            background: var(--bg-card-alt); padding: 10px 14px; border-radius: 8px; margin-top: 10px;
+            border: 1px solid var(--border);
         }
-        .scan-spinner { 
-            display: inline-block; width: 16px; height: 16px; border: 2px solid var(--info); 
-            border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; 
-        }
+        .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--accent); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>系統配置中心</h1>
-            <a href="/" style="color: var(--text); text-decoration: none; opacity: 0.7;">← 返回儀表板</a>
-        </header>
+    <header class="top-header">
+        <div class="logo-area">
+            <div class="logo-icon">先</div>
+            <div class="logo-text">
+                <h1>先行一步</h1>
+                <p>邊緣 AI 人車安全監控系統</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a href="/" class="btn-header">← 返回儀表板</a>
+            <a href="#" class="btn-header btn-accent">📄 操作文件資料</a>
+        </div>
+    </header>
 
-        <!-- 新增：網路診斷小工具 -->
-        <section class="glass-card" style="border-left: 4px solid var(--info); padding: 1.5rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h3 style="margin: 0; font-size: 1.1rem; color: var(--info);">📍 系統網路資訊</h3>
-                    <div id="net-info" style="font-size: 0.9rem; opacity: 0.7; margin-top: 5px;">正在取得網路狀態...</div>
+    <nav class="breadcrumb">
+        <a href="/">儀表板</a><span>›</span>系統配置中心
+    </nav>
+
+    <main class="content">
+        <h2 class="page-title">系統配置中心</h2>
+        <p class="page-subtitle">管理 ESP32-CAM 邊緣攝影機節點、系統網路連接、以及執行診斷連線排故障</p>
+
+        <!-- Network Info -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-header-title">📍 系統網路資訊</span>
+            </div>
+            <div class="card-body">
+                <div class="net-badges" id="net-badges">
+                    <div class="net-badge"><span class="label">主機名稱</span><span class="val" id="s-host">--</span></div>
+                    <div class="net-badge"><span class="label">本機 IP</span><span class="val" id="s-ip">--</span></div>
+                    <div class="net-badge"><span class="label">Wi-Fi</span><span class="val" id="s-wifi">--</span></div>
                 </div>
-                <div style="text-align: right;">
-                    <div style="font-size: 0.8rem; opacity: 0.5; margin-bottom: 5px;">連線測試 (TCP)</div>
-                    <div style="display: flex; gap: 5px;">
-                        <input type="text" id="ping-target" placeholder="192.168.x.x" style="padding: 5px 10px; width: 140px; font-size: 0.8rem;">
-                        <button class="btn btn-outline" style="padding: 5px 10px; font-size: 0.8rem;" onclick="testConnection()">測試</button>
-                    </div>
+                <div class="tcp-test-row">
+                    <input type="text" class="tcp-input" id="ping-target" placeholder="192.168.x.x">
+                    <button class="btn-tcp" onclick="testConnection()">⚡ TCP 測試</button>
+                    <span id="tcp-result" style="font-size:0.75rem;color:var(--text-muted);margin-left:8px;"></span>
                 </div>
             </div>
-        </section>
+        </div>
 
-        <section class="glass-card">
-            <h2>📜 已配置攝影機</h2>
+        <!-- Camera Configuration -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-header-title">📹 已配置攝影機節點</span>
+                <span style="font-size:0.65rem;color:var(--text-muted);">+ 預覽列</span>
+            </div>
             <form id="config-form">
-                <div id="camera-list">
-                    {% for cam in cameras %}
-                    <div class="cam-row" id="row-{{ loop.index0 }}">
-                        <input type="text" name="name_{{ loop.index0 }}" value="{{ cam.name }}">
-                        <input type="text" name="ip_{{ loop.index0 }}" value="{{ cam.ip }}">
-                        <button type="button" class="btn btn-danger" onclick="removeRow({{ loop.index0 }})">移除</button>
-                    </div>
-                    {% endfor %}
+                <table class="cam-table">
+                    <thead>
+                        <tr>
+                            <th style="width:40px">#</th>
+                            <th>名稱</th>
+                            <th>IP 位址 / 端口</th>
+                            <th style="width:70px;text-align:right">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="camera-list">
+                        {% for cam in cameras %}
+                        <tr id="row-{{ loop.index0 }}">
+                            <td class="idx">{{ loop.index }}</td>
+                            <td><input type="text" name="name_{{ loop.index0 }}" value="{{ cam.name }}"></td>
+                            <td><input type="text" name="ip_{{ loop.index0 }}" value="{{ cam.ip }}"></td>
+                            <td style="text-align:right"><button type="button" class="btn-delete" onclick="removeRow({{ loop.index0 }})">刪除</button></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div class="table-note">
+                    尚未配置任何節點嗎？請點擊「新增節點」配入基本。
                 </div>
-                <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
-                    <button type="button" class="btn btn-outline" onclick="addRow()">+ 手動新增</button>
-                    <button type="submit" class="btn btn-primary">💾 儲存並套用</button>
+                <div class="table-footer">
+                    <button type="button" class="btn-add" onclick="addRow()">+ 新增節點</button>
+                    <button type="submit" class="btn-save">💾 儲存並套用</button>
                 </div>
             </form>
-        </section>
+        </div>
 
-        <section class="glass-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <h2 style="margin: 0; color: var(--accent);">🔍 發現新設備 (mDNS)</h2>
-                <button class="btn btn-outline" onclick="startScan()" id="scan-btn">
-                    <span>開始掃描</span>
-                </button>
+        <!-- mDNS Discovery -->
+        <div class="card">
+            <div class="card-body">
+                <div class="discovery-header">
+                    <span class="card-header-title">🔍 自動發現設備 (mDNS)</span>
+                    <button class="btn-scan" onclick="startScan()" id="scan-btn">▶ 開始搜掃</button>
+                </div>
+                <div class="discovery-note" id="discovery-status">
+                    點擊「開始搜掃」，自動搜尋區域網路中名為 <code>esp32-safety</code> 的 HTTP 設備。
+                </div>
+                <div id="discovered-list"></div>
             </div>
-            <div id="discovery-status" style="font-size: 0.9rem; opacity: 0.6; margin-bottom: 10px;">
-                點擊上方按鈕開始搜尋區域網路中的 ESP32 設備...
-            </div>
-            <div id="discovered-list" class="discovery-list">
-                <!-- Discovered items appear here -->
-            </div>
-        </section>
-    </div>
+        </div>
+    </main>
 
     <script>
         let rowCount = {{ cameras|length }};
 
+        // Net info
         async function fetchNetInfo() {
             try {
-                const resp = await fetch('/api/net_info');
-                const data = await resp.json();
-                document.getElementById('net-info').innerText = `主機名稱: ${data.hostname} | 區域網路 IP: ${data.local_ip}`;
-            } catch (e) {
-                document.getElementById('net-info').innerText = "無法取得網路資訊";
+                const [netR, wifiR] = await Promise.all([fetch('/api/net_info'), fetch('/api/wifi_status')]);
+                const net = await netR.json(), wifi = await wifiR.json();
+                document.getElementById('s-host').innerText = net.hostname;
+                document.getElementById('s-ip').innerText = net.local_ip;
+                document.getElementById('s-wifi').innerText = wifi.ssid + ' (' + wifi.mode + ')';
+            } catch(e) {
+                document.getElementById('s-host').innerText = '無法取得';
             }
         }
-        window.onload = fetchNetInfo;
+        fetchNetInfo();
 
+        // TCP test
         async function testConnection() {
             const target = document.getElementById('ping-target').value;
-            if(!target) return;
-            const btn = event.currentTarget;
-            const originalText = btn.innerText;
-            btn.innerText = "⏳";
+            if (!target) return;
+            const result = document.getElementById('tcp-result');
+            result.innerText = '⏳ 測試中...';
+            result.style.color = 'var(--text-muted)';
             try {
-                const resp = await fetch(`/api/ping/${target}`);
+                const resp = await fetch('/api/ping/' + target);
                 const data = await resp.json();
-                if(data.status === "success") {
-                    alert(`✅ 連線成功！ ${target} 可正常通訊。`);
+                if (data.status === 'success') {
+                    result.innerText = '✅ 連線成功';
+                    result.style.color = 'var(--success)';
                 } else {
-                    alert(`❌ 連線失敗！\n原因: ${data.message}\n請檢查設備是否在同一個網段，或是否有其他裝置佔用連線。`);
+                    result.innerText = '❌ 失敗: ' + data.message;
+                    result.style.color = 'var(--danger)';
                 }
-            } catch(e) { alert("連線測試發生錯誤"); }
-            finally { btn.innerText = originalText; }
+            } catch(e) {
+                result.innerText = '❌ 測試發生錯誤';
+                result.style.color = 'var(--danger)';
+            }
         }
 
-        function addRow(name = "", ip = "") {
-            const container = document.getElementById('camera-list');
-            const div = document.createElement('div');
-            div.className = 'cam-row';
-            div.id = `row-${rowCount}`;
-            div.innerHTML = `
-                <input type="text" name="name_${rowCount}" value="${name}" placeholder="名稱">
-                <input type="text" name="ip_${rowCount}" value="${ip}" placeholder="IP">
-                <button type="button" class="btn btn-danger" onclick="removeRow(${rowCount})">移除</button>
+        // Camera table management
+        function addRow(name = '', ip = '') {
+            const tbody = document.getElementById('camera-list');
+            const tr = document.createElement('tr');
+            tr.id = `row-${rowCount}`;
+            const idx = tbody.children.length + 1;
+            tr.innerHTML = `
+                <td class="idx">${idx}</td>
+                <td><input type="text" name="name_${rowCount}" value="${name}" placeholder="攝影機名稱"></td>
+                <td><input type="text" name="ip_${rowCount}" value="${ip}" placeholder="192.168.x.x"></td>
+                <td style="text-align:right"><button type="button" class="btn-delete" onclick="removeRow(${rowCount})">刪除</button></td>
             `;
-            container.appendChild(div);
+            tbody.appendChild(tr);
             rowCount++;
         }
 
-        function removeRow(id) { 
+        function removeRow(id) {
             const row = document.getElementById(`row-${id}`);
-            if(row) row.remove(); 
+            if (row) row.remove();
+            // Re-index
+            const rows = document.getElementById('camera-list').children;
+            Array.from(rows).forEach((tr, i) => {
+                tr.querySelector('.idx').innerText = i + 1;
+            });
         }
 
+        // mDNS scan
         async function startScan() {
             const btn = document.getElementById('scan-btn');
             const status = document.getElementById('discovery-status');
             btn.disabled = true;
-            status.innerHTML = '<div class="scan-spinner"></div> 正在掃描區網設備...';
-            
+            btn.innerHTML = '<span class="spin"></span> 搜掃中...';
             try {
                 const resp = await fetch('/scan');
                 const devices = await resp.json();
                 const list = document.getElementById('discovered-list');
-                list.innerHTML = "";
-                
+                list.innerHTML = '';
                 if (devices.length === 0) {
-                    status.innerText = "未在區網中發現新的安全攝影機。";
+                    status.innerText = '未在區網中發現新的安全攝影機。';
                 } else {
                     status.innerText = `發現 ${devices.length} 個可用的設備！`;
                     devices.forEach(dev => {
@@ -193,42 +452,36 @@
                         div.className = 'discovered-item';
                         div.innerHTML = `
                             <div>
-                                <div style="font-weight: 600;">${dev.name}</div>
-                                <div style="font-size: 0.8rem; opacity: 0.6;">IP: ${dev.ip}</div>
+                                <div style="font-weight:600;font-size:0.8rem;">${dev.name}</div>
+                                <div style="font-size:0.7rem;color:var(--text-muted);">IP: ${dev.ip}</div>
                             </div>
-                            <button class="btn btn-primary" onclick="addRow('${dev.name}', '${dev.ip}')">加入系統</button>
+                            <button class="btn-tcp" onclick="addRow('${dev.name}','${dev.ip}')">加入系統</button>
                         `;
                         list.appendChild(div);
                     });
                 }
-            } catch (err) {
-                status.innerText = "掃描失敗，請檢查網路連線。";
+            } catch(e) {
+                status.innerText = '掃描失敗，請檢查網路連線。';
             } finally {
                 btn.disabled = false;
+                btn.innerHTML = '▶ 開始搜掃';
             }
         }
 
+        // Save form
         document.getElementById('config-form').onsubmit = async (e) => {
             e.preventDefault();
             const cameras = [];
-            const rows = document.querySelectorAll('.cam-row');
-            
+            const rows = document.querySelectorAll('#camera-list tr');
             rows.forEach((row, index) => {
-                const nameInput = row.querySelector('input[type="text"]:nth-child(1)');
-                const ipInput = row.querySelector('input[type="text"]:nth-child(2)');
-                if (nameInput && ipInput && nameInput.value && ipInput.value) {
-                    cameras.push({ 
-                        id: index + 1, 
-                        name: nameInput.value, 
-                        ip: ipInput.value 
-                    });
+                const inputs = row.querySelectorAll('input[type="text"]');
+                if (inputs.length >= 2 && inputs[0].value && inputs[1].value) {
+                    cameras.push({ id: index + 1, name: inputs[0].value, ip: inputs[1].value });
                 }
             });
-
             if (cameras.length === 0) {
-                if(!confirm("目前沒有配置任何攝影機，確定要儲存嗎？")) return;
+                if (!confirm('目前沒有配置任何攝影機，確定要儲存嗎？')) return;
             }
-
             try {
                 const resp = await fetch('/settings', {
                     method: 'POST',
@@ -236,11 +489,11 @@
                     body: JSON.stringify({ cameras })
                 });
                 if (resp.ok) {
-                    alert("設定已儲存並生效！系統正在重新啟動背景連線任務。");
-                    window.location.href = "/";
+                    alert('設定已儲存並生效！系統正在重新啟動背景連線任務。');
+                    window.location.href = '/';
                 }
-            } catch (err) {
-                alert("儲存失敗，請檢查後端服務是否正常。");
+            } catch(e) {
+                alert('儲存失敗，請檢查後端服務是否正常。');
             }
         };
     </script>

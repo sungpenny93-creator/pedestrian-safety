@@ -58,6 +58,11 @@ frame_cache = {}
 status_cache = {}
 discovered_devices = [] # List of {"name": x, "ip": x}
 system_logs = deque(maxlen=50)
+ai_stats = {}  # {cam_id: {"pedestrians": int, "dangers": int, "nearest_dist": float}}
+server_start_time = time.time()
+ai_fps_data = {"current": 0.0, "history": deque(maxlen=120)}
+alarm_count_today = 0
+_last_ai_time = {}
 
 # AI Tracking Config
 MODEL_PATH = "yolov8n.pt"
@@ -138,6 +143,7 @@ class PedestrianTracker:
             self._alarm_lock = False
 
     def trigger_alarm(self):
+        global alarm_count_today
         now = time.time()
         if self._alarm_lock or (self.last_alarm_time > 0 and now - self.last_alarm_time < ALARM_DURATION):
             return 
@@ -145,6 +151,7 @@ class PedestrianTracker:
         add_log(f">>> AI TRIGGER: ACTivating Crosswalk Alarm for {self.cam_ip}", "WARN")
         self._alarm_lock = True
         self.last_alarm_time = now
+        alarm_count_today += 1
         threading.Thread(target=self._send_alarm_request, args=("on",), daemon=True).start()
 
     def reset_alarm_if_needed(self):
@@ -196,25 +203,23 @@ trackers = {}
 
 def detect_pedestrians(frame):
     """
-    虛擬推論函式。
+    使用 YOLOv8n + ByteTrack 進行行人偵測與追蹤。
+    回傳 list of (track_id, x1, y1, x2, y2)
     """
     global model
-    # === 註解掉推論，停用影像辨識 ===
-    return []
-    
-    # if model is None: return []
-    # results = model.track(frame, persist=True, classes=[0], tracker="bytetrack.yaml", verbose=False, imgsz=320)
-    # detections = []
-    # if results[0].boxes.id is not None:
-    #     boxes = results[0].boxes.xyxy.cpu().numpy()
-    #     ids = results[0].boxes.id.cpu().numpy().astype(int)
-    #     for box, track_id in zip(boxes, ids):
-    #         detections.append((track_id, box[0], box[1], box[2], box[3]))
-    # return detections
+    if model is None: return []
+    results = model.track(frame, persist=True, classes=[0], tracker="bytetrack.yaml", verbose=False, imgsz=320)
+    detections = []
+    if results[0].boxes.id is not None:
+        boxes = results[0].boxes.xyxy.cpu().numpy()
+        ids = results[0].boxes.id.cpu().numpy().astype(int)
+        for box, track_id in zip(boxes, ids):
+            detections.append((track_id, box[0], box[1], box[2], box[3]))
+    return detections
 
 def process_ai_frame(frame, cam_id):
-    """同步阻塞的 AI 處理函式"""
-    global transformer
+    """同步阻塞的 AI 處理函式：YOLOv8n 偵測 + ByteTrack 追蹤 + Homography 距離計算"""
+    global transformer, ai_stats
     
     if cam_id not in trackers:
         cam = next((c for c in config["cameras"] if c["id"] == cam_id), None)
@@ -231,22 +236,103 @@ def process_ai_frame(frame, cam_id):
     # 取得最新車輛偵測狀態（透過 status_cache）
     vehicle_detected = status_cache.get(cam_id, {}).get("vehicle_detected", False)
     
-    # 推論 (透過抽離出的虛擬函式)
+    # 推論
     detections = detect_pedestrians(frame)
+    
+    h, w = frame.shape[:2]
+    
+    # 繪製馬路邊緣參考線 (Curb Line)
+    if transformer is not None:
+        # 將 curb_y 從地面座標反投影回像素座標作為視覺參考
+        curb_pixel_y = int(h * (1.0 - CURB_Y_THRESHOLD / 5.0))  # 近似映射
+        cv2.line(frame, (0, curb_pixel_y), (w, curb_pixel_y), (0, 200, 255), 1, cv2.LINE_AA)
+        cv2.putText(frame, f"CURB LINE ({CURB_Y_THRESHOLD:.1f}m)", (10, curb_pixel_y - 8),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 200, 255), 1, cv2.LINE_AA)
+    
+    # AI 統計計數器
+    ped_count = 0
+    danger_count = 0
+    nearest_dist = 999.0
     
     for track_id, x1, y1, x2, y2 in detections:
         foot_x, foot_y = (x1 + x2) / 2, y2
         gx, gy = transformer.transform(foot_x, foot_y)
-        # === 使用者要求暫時註解影像辨識觸發警報的部分 ===
-        # is_danger = tracker_logic.update(track_id, (gx, gy), vehicle_detected)
-        is_danger = False 
-        # ===============================================
+        is_danger = tracker_logic.update(track_id, (gx, gy), vehicle_detected)
         
-        # 視覺回饋
-        color = (0, 0, 255) if is_danger else (0, 255, 0)
-        cv2.circle(frame, (int(foot_x), int(foot_y)), 6, color, -1)
-        cv2.putText(frame, f"ID:{track_id} {gy:.1f}m", (int(x1), int(y1-5)), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        # 計算距離馬路邊緣的距離
+        dist_to_curb = abs(gy - CURB_Y_THRESHOLD)
+        
+        ped_count += 1
+        if is_danger:
+            danger_count += 1
+        nearest_dist = min(nearest_dist, dist_to_curb)
+        
+        # ===== 視覺標註 =====
+        ix1, iy1, ix2, iy2 = int(x1), int(y1), int(x2), int(y2)
+        
+        if is_danger:
+            # 危險：紅色粗框 + 閃爍效果
+            color = (0, 0, 255)
+            thickness = 2
+            # 半透明紅色填充
+            overlay = frame.copy()
+            cv2.rectangle(overlay, (ix1, iy1), (ix2, iy2), color, -1)
+            cv2.addWeighted(overlay, 0.15, frame, 0.85, 0, frame)
+        else:
+            # 安全：綠色細框
+            color = (0, 255, 0)
+            thickness = 1
+        
+        # Bounding Box
+        cv2.rectangle(frame, (ix1, iy1), (ix2, iy2), color, thickness, cv2.LINE_AA)
+        
+        # 腳部圓點
+        cv2.circle(frame, (int(foot_x), int(foot_y)), 5, color, -1, cv2.LINE_AA)
+        
+        # 距離色彩分級
+        if dist_to_curb < 1.0:
+            dist_color = (0, 0, 255)    # 紅色 < 1m
+        elif dist_to_curb < 2.0:
+            dist_color = (0, 200, 255)  # 黃色 1-2m
+        else:
+            dist_color = (0, 255, 0)    # 綠色 > 2m
+        
+        # 標籤背景 (提升可讀性)
+        label = f"ID:{track_id} {dist_to_curb:.1f}m"
+        (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+        label_y = max(iy1 - 8, th + 4)
+        cv2.rectangle(frame, (ix1, label_y - th - 4), (ix1 + tw + 6, label_y + 2), (0, 0, 0), -1)
+        cv2.putText(frame, label, (ix1 + 3, label_y - 2),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, dist_color, 1, cv2.LINE_AA)
+    
+    # HUD 資訊疊加 (左上角)
+    hud_lines = [
+        f"Pedestrians: {ped_count}",
+        f"Dangers: {danger_count}",
+        f"Nearest: {nearest_dist:.1f}m" if nearest_dist < 900 else "Nearest: --",
+    ]
+    for i, line in enumerate(hud_lines):
+        y_pos = 25 + i * 22
+        cv2.putText(frame, line, (10, y_pos),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 1, cv2.LINE_AA)
+    
+    # 更新全域 AI 統計
+    ai_stats[cam_id] = {
+        "pedestrians": ped_count,
+        "dangers": danger_count,
+        "nearest_dist": round(nearest_dist, 2) if nearest_dist < 900 else -1,
+    }
+    
+    # 追蹤 AI FPS
+    now_t = time.time()
+    if cam_id in _last_ai_time:
+        dt = now_t - _last_ai_time[cam_id]
+        if dt > 0:
+            fps = 1.0 / dt
+            ai_fps_data["current"] = round(fps, 1)
+            ai_fps_data["history"].append({"t": round(now_t, 2), "fps": round(fps, 1)})
+    _last_ai_time[cam_id] = now_t
+    
     return frame
 
 # ===================
@@ -403,14 +489,15 @@ from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global zc_instance, is_shutting_down, model, transformer
-    # === 使用者要求：暫時註解影像辨識，不載入模型 ===
-    # add_log("🚀 正在載入 YOLO 模型與初始化 Transformer...", "INFO")
-    # model = YOLO(MODEL_PATH)
-    # transformer = HomographyTransformer(SRC_PTS, DST_PTS)
-    model = None
-    transformer = None
-    add_log("🚀 (影像辨識已註解停用) 系統啟動中...", "INFO")
-    # ===============================================
+    add_log("🚀 正在載入 YOLOv8n 模型與初始化 Homography Transformer...", "INFO")
+    try:
+        model = YOLO(MODEL_PATH)
+        transformer = HomographyTransformer(SRC_PTS, DST_PTS)
+        add_log("✅ AI 推論引擎已啟用 (YOLOv8n + ByteTrack + Homography)", "INFO")
+    except Exception as e:
+        model = None
+        transformer = None
+        add_log(f"⚠️ AI 模型載入失敗，系統以純串流模式運行: {e}", "WARN")
     
     start_all_fetchers()
     zc_instance = start_mdns_discovery()
@@ -533,6 +620,65 @@ async def get_status():
             "latency": data.get("latency", -1)
         })
     return combined_status
+
+@app.get("/api/ai_stats")
+async def get_ai_stats():
+    """回傳各攝影機的 AI 偵測即時統計"""
+    return {
+        "model_loaded": model is not None,
+        "cameras": ai_stats,
+    }
+
+@app.get("/api/system_resources")
+async def get_system_resources():
+    """回傳系統資源使用狀況 (CPU, RAM, 溫度)"""
+    data = {"cpu": 0, "ram": 0, "temp": 0}
+    try:
+        import psutil
+        data["cpu"] = psutil.cpu_percent(interval=0)
+        data["ram"] = psutil.virtual_memory().percent
+        try:
+            temps = psutil.sensors_temperatures()
+            if temps:
+                for entries in temps.values():
+                    if entries:
+                        data["temp"] = round(entries[0].current, 1)
+                        break
+        except (AttributeError, Exception):
+            pass
+    except ImportError:
+        pass
+    return data
+
+@app.get("/api/dashboard_summary")
+async def get_dashboard_summary():
+    """回傳儀表板摘要 (頂部列統計)"""
+    cams = config.get("cameras", [])
+    total = len(cams)
+    connected = sum(1 for c in cams if c["id"] in frame_cache)
+    avg_lat = 0
+    lat_count = 0
+    for c in cams:
+        lat = status_cache.get(c["id"], {}).get("latency", -1)
+        if lat >= 0:
+            avg_lat += lat
+            lat_count += 1
+    if lat_count > 0:
+        avg_lat = int(avg_lat / lat_count)
+    uptime = int(time.time() - server_start_time)
+    return {
+        "connected": connected,
+        "total": total,
+        "ai_fps": ai_fps_data["current"],
+        "alarm_count_today": alarm_count_today,
+        "avg_latency": avg_lat,
+        "uptime": uptime,
+    }
+
+@app.get("/api/ai_fps_history")
+async def get_ai_fps_history():
+    """回傳 AI FPS 歷史數據 (圖表用)"""
+    return list(ai_fps_data["history"])
 
 if __name__ == "__main__":
     import os
