@@ -64,7 +64,7 @@ pedestrian-safety/
 
 ### 1. 零件清單 (BOM)
 
-* **中樞大腦**：Raspberry Pi 5 (8GB RAM，建議搭配散熱風扇)
+* **中樞大腦**：Raspberry Pi 5 
 * **邊緣節點**：AI-Thinker ESP32-CAM 模組
 * **感測與警示**：霍爾感測器 (磁場偵測)、單路繼電器模組、5V/12V LED 警示燈條
 * **其他**：高度 3.5m - 5m 之固定支架/外殼
